@@ -2,9 +2,10 @@ import * as fs from "fs";
 import * as path from "path";
 
 import * as vscode from 'vscode';
-import { PipelineTargets } from "../model/Common";
+import { PipelineTargets } from "../model/common";
 
 export async function getSelectedPipeline(nodeUri: vscode.Uri[], dockerUri: vscode.Uri[]): Promise<string> {
+    // TO-DO: To populate the possible pipelines on the basis of azure target resource.
 	let items: string[] = [];
 	if (nodeUri.length === 0) {
 		throw new Error("Failed to detect Node.js application");
@@ -33,16 +34,10 @@ export async function analyzeRepo() {
 	return Promise.all([nodeFiles, dockerFiles]);
 }
 
-function getTargetAzureService() {
-	// returns back subscription and target azure service details.
-}
-
-export function getPipelineTargetType(pipeline: string): number {
+export function getPipelineTargetType(pipeline: string): PipelineTargets {
 	switch (pipeline) {
 		case NodeOnWindows:
 			return PipelineTargets.WindowsWebApp;
-		case NodeOnContainers:
-			return PipelineTargets.WebAppForContainers;
 		default:
 			return PipelineTargets.None;
 	}

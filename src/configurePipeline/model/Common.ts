@@ -1,56 +1,47 @@
+import { OutputChannel, ExtensionContext } from 'vscode';
+
+import { GenericResource } from 'azure-arm-resource/lib/resource/models';
 import { ServiceClientCredentials } from 'ms-rest';
-import { AzureTreeDataProvider, IAzureUserInput, ITelemetryReporter, AzureTreeItem } from 'vscode-azureextensionui';
-import { OutputChannel, ExtensionContext, TreeView } from 'vscode';
+
 import { AzureDevOpsService } from '../services/azureDevOpsService';
-import { AzureTargetService } from '../services/target/azureTargetService';
-import { SourceRepoService } from '../services/source/sourceRepoService';
+import { SourceRepositoryService } from '../services/source/sourceRepositoryService';
+import { AzureService } from '../services/target/azureService';
+import TelemetryReporter from 'vscode-extension-telemetry';
 
 export namespace extensionVariables {
     export let azureAccountApi: any;
-    export let tree: AzureTreeDataProvider;
     export let outputChannel: OutputChannel;
-    export let ui: IAzureUserInput;
-    export let reporter: ITelemetryReporter;
+    export let reporter: TelemetryReporter;
     export let context: ExtensionContext;
-    export let treeView: TreeView<AzureTreeItem>;
     export let azureDevOpsService: AzureDevOpsService;
-    export let azureTargetService: AzureTargetService;
-    export let sourceRepoService: SourceRepoService;
+    export let azureService: AzureService;
+    export let sourceRepositoryService: SourceRepositoryService;
     export let pipelineTargetType: PipelineTargets;
     export let inputs: WizardInputs;
 }
 
 export class WizardInputs {
-	sourceRepoDetails: GitRepoDetails;
+    authDetails: AzureAuthentication = new AzureAuthentication();
+	sourceRepositoryDetails: GitRepositoryDetails;
 	organizationName: string;
-	projectName: string;
-	sourceProviderConnectionId?: string;
-	targetResource: AzureTargetResource;
+    projectName: string;
+    selectedPipeline: string;
+    sourceProviderConnectionId?: string;
+    subscriptionId: string;
+	targetResource: GenericResource;
 	azureServiceConnectionId: string;
 	workingDirectory: string;
 }
 
-export enum PipelineTargets {
-    None = 0,
-    WindowsWebApp = 1,
-    WebAppForContainers = 2
-}
-
-export interface GitRepoDetails {
-    sourceProvider: SourceProviderType;
-    repositoryId: string;
-    repositoryName: string;
-    branch: string;
-    commitId: string;
-}
-
-export interface AzureTargetResource {
-    resourceType: PipelineTargets;
-    resourceName: string;
-    resourceId: string;
-    subscriptionId: string;
-    tenantId: string;
+export class AzureAuthentication {
     credentials: ServiceClientCredentials;
+    tenantId: string;
+}
+
+export enum SourceOptions {
+    CurrentWorkspace = "CurrentWorkspace",
+    BrowseLocalMachine = "Browse local machine",
+    GithubRepository = "Github repository"
 }
 
 export enum SourceProviderType {
@@ -58,4 +49,27 @@ export enum SourceProviderType {
     AzureRepos = 'tfsgit'
 }
 
-export const extensionPrefix: string = 'appService';
+export interface GitRepositoryDetails {
+    sourceProvider: SourceProviderType;
+    repositoryId: string;
+    repositoryName: string;
+    branch: string;
+    commitId: string;
+}
+
+export enum PipelineTargets {
+    None = 'none',
+    WindowsWebApp = 'Microsoft.WebApps'
+}
+
+export interface AzureTargetResource {
+    resourceType: PipelineTargets;
+    resourceName: string;
+    resourceId: string;
+    subscriptionId: string;
+}
+
+export enum ConnectionServiceType {
+    GitHub = "github",
+    AzureRM = "azurerm"
+}

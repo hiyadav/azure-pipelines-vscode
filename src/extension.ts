@@ -69,7 +69,7 @@ export async function activate(context: vscode.ExtensionContext) {
 
     // TODO: Can we get rid of this since it's set in package.json?
     vscode.languages.setLanguageConfiguration('azure-pipelines', { wordPattern: /("(?:[^\\\"]*(?:\\.)?)*"?)|[^\s{}\[\],:]+/ });
-    await activateConfigurePipeline(context);
+    await activateConfigurePipeline(context, reporter);
     return schemacontributor.schemaContributor;
 }
 

@@ -1,15 +1,15 @@
-import { GitRepoDetails } from "../model/Common";
+import { GitRepositoryDetails } from "../model/common";
 
 export class GithubProvider {
-    private repoDetails: GitRepoDetails;
+    private repoDetails: GitRepositoryDetails;
     private gitHubPatToken: string;
 
-    constructor(repoDetails: GitRepoDetails, gitHubPat: string) {
+    constructor(repoDetails: GitRepositoryDetails, gitHubPat: string) {
         this.repoDetails = repoDetails;
         this.gitHubPatToken = gitHubPat;
     }
 
-    public GetRepos(fetchAllRepos: boolean = false): Array<GitRepoDetails> {
+    public GetRepos(fetchAllRepos: boolean = false): Array<GitRepositoryDetails> {
         return [];
     }
 
