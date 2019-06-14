@@ -8,11 +8,12 @@ import * as Mustache from "mustache";
 import { GitRepositoryDetails, SourceProviderType } from '../../model/common';
 import { AzureDevOpsService } from "../azureDevOpsService";
 import Q = require('q');
+import { GitHubProvider } from '../gitHubService';
 
 export class SourceRepositoryService {
     private gitReference: git.SimpleGit;
     
-    public async getGitRepoDetails(workspacePath: string, azureDevOps: AzureDevOpsService): Promise<GitRepositoryDetails> {
+    public async getGitRepoDetails(workspacePath: string): Promise<GitRepositoryDetails> {
         let gitPath: string = path.join(workspacePath, '.git');
         if (!fs.existsSync(gitPath)) {
             throw new Error("Git folder could not be found inside the folder at path: " + workspacePath);
@@ -25,53 +26,27 @@ export class SourceRepositoryService {
         let remoteUrl = await this.gitReference.remote(["get-url", tracking]);
 
         if (remoteUrl) {
-            if (remoteUrl.indexOf(GithubUrl) >= 0) {
-                //https://github.com/dikhakha/DemoNodeApp.git
-
-                let repoId = remoteUrl.substring(GithubUrl.length, remoteUrl.indexOf(".git"));
+            if (AzureDevOpsService.isAzureReposUrl(remoteUrl)) {
+                let gitDetails: GitRepositoryDetails = {
+                    sourceProvider: SourceProviderType.AzureRepos,
+                    repositoryId: "",
+                    repositoryName: AzureDevOpsService.getRepositoryNameFromRemoteUrl(remoteUrl),
+                    remoteUrl: remoteUrl,
+                    branch: "",
+                    commitId: ""
+                };
+                return gitDetails;
+            }
+            else if (GitHubProvider.isGitHubUrl(remoteUrl)) {
+                let repoId = GitHubProvider.getRepositoryIdFromUrl(remoteUrl);
                 return <GitRepositoryDetails>{
                     sourceProvider: SourceProviderType.Github,
                     repositoryId: repoId,
                     repositoryName: repoId,
+                    remoteUrl: remoteUrl,
                     branch: "",
                     commitId: ""
                 };
-            }
-            else if (remoteUrl.indexOf(AzureReposUrl) >= 0) {
-                //https://dikhakha@dev.azure.com/dikhakha/vscode-extension/_git/vscode-extension
-
-                let part = remoteUrl.substr(remoteUrl.indexOf(AzureReposUrl) + AzureReposUrl.length);
-                let parts = part.split("/");
-                azureDevOps.setOrganizationName(parts[0].trim());
-                azureDevOps.setProjectName(parts[1].trim());
-                let gitDetails: GitRepositoryDetails = {
-                    sourceProvider: SourceProviderType.AzureRepos,
-                    repositoryId: "",
-                    repositoryName: parts[3].trim(),
-                    branch: "",
-                    commitId: ""
-                };
-                let repoDetails = await azureDevOps.getRepositoryDetails(gitDetails.repositoryName);
-                gitDetails.repositoryId = repoDetails.id;
-                return gitDetails;
-            }
-            else if (remoteUrl.indexOf(VSOUrl) >= 0) {
-                //https://dikhakha.visualstudio.com/vscode-extension/_git/vscode-extension
-
-                let part = remoteUrl.substr(remoteUrl.indexOf(VSOUrl) + VSOUrl.length);
-                let parts = part.split("/");
-                azureDevOps.setOrganizationName(remoteUrl.substring(remoteUrl.indexOf("https://") + "https://".length, remoteUrl.indexOf(".visualstudio.com")));
-                azureDevOps.setProjectName(parts[0].trim());
-                let gitDetails: GitRepositoryDetails = {
-                    sourceProvider: SourceProviderType.AzureRepos,
-                    repositoryId: "",
-                    repositoryName: parts[2].trim(),
-                    branch: "",
-                    commitId: ""
-                };
-                let repoDetails = await azureDevOps.getRepositoryDetails(gitDetails.repositoryName);
-                gitDetails.repositoryId = repoDetails.id;
-                return gitDetails;
             }
             else {
                 throw new Error("Could not identify repository details. Ensure your git repo is managed with Azure Repos or Github");
@@ -82,6 +57,8 @@ export class SourceRepositoryService {
         }
     }
 
+
+
     /**
      *
      * @param pipelineYamlPath : local path of yaml pipeline in the extension
@@ -91,9 +68,8 @@ export class SourceRepositoryService {
     public addYmlFileToRepo(ymlFilePath: string, context: any) {
         let deferred: Q.Deferred<string> = Q.defer();
         fs.readFile(ymlFilePath, { encoding: "utf8" }, async (error, data) => {
-
             if (error) {
-                vscode.window.showErrorMessage(error.message);
+                throw new Error(error.message);
             }
             else {
                 let fileContent = Mustache.render(data, context);
@@ -138,7 +114,3 @@ export class SourceRepositoryService {
         };
     }
 }
-
-const GithubUrl = "https://github.com/";
-const VSOUrl = "visualstudio.com/";
-const AzureReposUrl = "dev.azure.com/"

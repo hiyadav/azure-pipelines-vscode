@@ -4,21 +4,20 @@ import * as path from "path";
 import * as vscode from 'vscode';
 import { PipelineTargets } from "../model/common";
 
-export async function getSelectedPipeline(nodeUri: vscode.Uri[], dockerUri: vscode.Uri[]): Promise<string> {
+export async function listAppropriatePipeline(nodeUri: vscode.Uri[], dockerUri: vscode.Uri[]): Promise<string[]> {
     // TO-DO: To populate the possible pipelines on the basis of azure target resource.
-	let items: string[] = [];
+	let appropriatePipelines: string[] = [];
 	if (nodeUri.length === 0) {
 		throw new Error("Failed to detect Node.js application");
 	}
 	else if (dockerUri.length > 0) {
-		items = [NodeOnContainers, NodeOnWindows];
+		appropriatePipelines = [NodeOnContainers, NodeOnWindows];
 	}
 	else {
-		items = [NodeOnWindows, NodeOnContainers];
-	}
-	return vscode.window.showQuickPick(items, {
-		placeHolder: "Select Azure pipelines template .."
-	});
+		appropriatePipelines = [NodeOnWindows, NodeOnContainers];
+    }
+    
+    return appropriatePipelines;
 }
 
 export async function analyzeRepo() {

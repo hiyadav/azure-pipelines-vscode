@@ -5,6 +5,9 @@ import { ServiceClientCredentials, ServiceClient, UrlBasedRequestPrepareOptions 
 import { Constants } from '../constants';
 import { WizardInputs } from '../model/Common';
 
+// TO-DO: add handling failure cases
+// either throw here or analyze in the calling service layer for any errors;
+// for the second declare a model
 export class AzureDevOpsClient {
     private serviceClient: ServiceClient;
 
@@ -76,7 +79,7 @@ export class AzureDevOpsClient {
         });
     }
 
-    public async createGitHubServiceConnection(endpointId: string, endpointName: string, gitHubPat: string, organizationName: string, projectName: string) {
+    public async createGitHubServiceConnection(endpointName: string, gitHubPat: string, organizationName: string, projectName: string) {
         return this.serviceClient.sendRequest<any>(<UrlBasedRequestPrepareOptions>{
             url: "https://" + organizationName + ".visualstudio.com/" + projectName + "/_apis/serviceendpoint/endpoints",
             headers: {
@@ -94,7 +97,6 @@ export class AzureDevOpsClient {
                 },
                 "description": "",
                 "groupScopeId": null,
-                "id": endpointId,
                 "name": endpointName,
                 "operationStatus": null,
                 "readersGroup": null,
@@ -106,7 +108,7 @@ export class AzureDevOpsClient {
         });
     }
 
-    public async createAzureServiceConnection(endpointId: string, inputs: WizardInputs, scope?: string, ): Promise<any> {
+    public async createAzureServiceConnection(endpointName: string, inputs: WizardInputs, scope?: string, ): Promise<any> {
         return this.serviceClient.sendRequest<any>(<UrlBasedRequestPrepareOptions>{
             url: "https://" + inputs.organizationName + ".visualstudio.com/" + inputs.projectName + "/_apis/serviceendpoint/endpoints",
             headers: {
@@ -139,8 +141,7 @@ export class AzureDevOpsClient {
                 },
                 "description": "",
                 "groupScopeId": null,
-                "id": endpointId,
-                "name": endpointId,
+                "name": endpointName,
                 "operationStatus": null,
                 "readersGroup": null,
                 "type": "azurerm",
@@ -164,19 +165,25 @@ export class AzureDevOpsClient {
         });
     }
 
-    public async authorizeEndpoint(endpointId: string, endpointName: string, organizationName: string, projectName: string): Promise<any> {
+    public async authorizeEndpointForAllPipelines(endpointId: string, endpointName: string, organizationName: string, projectName: string): Promise<any> {
         return this.serviceClient.sendRequest<any>(<UrlBasedRequestPrepareOptions>{
-            url: "https://" + organizationName + ".visualstudio.com/" + projectName + "/_apis/serviceendpoint/endpoints",
+            url: "https://" + organizationName + ".visualstudio.com/" + projectName + "/_apis/pipelines/pipelinePermissions/endpoint/" + endpointId,
             headers: {
                 "Content-Type": "application/json",
-                "Accept": "application/json;api-version=5.1-preview.2;excludeUrls=true"
+                "Accept": "application/json;api-version=5.1-preview.1;excludeUrls=true;enumsAsNumbers=true;msDateFormat=true;noArrayWrap=true"
             },
             method: "PATCH",
             body: {
-                "authorized": true,
-                "id": endpointId,
-                "name": endpointName,
-                "type": "endpoint"
+                "allPipelines": {
+                    "authorized": true,
+                    "authorizedBy": null,
+                    "authorizedOn": null
+                },
+                "pipelines": null,
+                "resource": {
+                    "id": endpointId,
+                    "type": "endpoint"
+                }
             },
             deserializationMapper: null,
             serializationMapper: null

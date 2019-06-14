@@ -1,89 +1,106 @@
 import * as guidGenerator from 'uuid/v1';
-import * as vscode from 'vscode';
 
 import { ServiceClientCredentials } from 'ms-rest';
 
-import { GitRepositoryDetails, WizardInputs, ConnectionServiceType } from '../model/common';
+import { GitRepositoryDetails, WizardInputs } from '../model/common';
 import { AzureDevOpsClient } from '../clients/azureDevOpsClient';
+import { setTimeout } from 'timers';
 
 export class AzureDevOpsService {
     private azureDevOpsClient: AzureDevOpsClient;
     private organizationName: string;
     private projectName: string;
+    private static AzureReposUrl = '"dev.azure.com/"';
+    private static VSOUrl = "visualstudio.com/";
 
     public constructor(credentials: ServiceClientCredentials) {
         this.azureDevOpsClient = new AzureDevOpsClient(credentials);
     }
 
-    public async getRepositoryDetails(repositoryName: string): Promise<any> {
-        return this.azureDevOpsClient.getRepositoryDetails(repositoryName, this.organizationName, this.projectName);
+    public static isAzureReposUrl(remoteUrl: string): boolean {
+        return (remoteUrl.indexOf(AzureDevOpsService.AzureReposUrl) >= 0 || remoteUrl.indexOf(AzureDevOpsService.VSOUrl) >= 0);
     }
 
-    public async getOrganizationName(): Promise<string> {
-        if (!!this.organizationName) {
-            return this.organizationName;
+    public static getRepositoryNameFromRemoteUrl(remoteUrl: string): string {
+        if (remoteUrl.indexOf(AzureDevOpsService.AzureReposUrl) >= 0) {
+            let part = remoteUrl.substr(remoteUrl.indexOf(AzureDevOpsService.AzureReposUrl) + AzureDevOpsService.AzureReposUrl.length);
+            let parts = part.split("/");
+            return parts[3].trim();
         }
+        else if (remoteUrl.indexOf(AzureDevOpsService.VSOUrl) >= 0) {
+            let part = remoteUrl.substr(remoteUrl.indexOf(AzureDevOpsService.VSOUrl) + AzureDevOpsService.VSOUrl.length);
+            let parts = part.split("/");
+            return parts[2].trim();
+        }
+        else {
+            throw new Error("Repo Url is not of Azure Repos type.");
+        }
+    }
 
+    public async getRepositoryId(repositoryName: string, remoteUrl: string): Promise<string> {
+        this.setOrganizationAndProjectNameFromRepositoryUrl(remoteUrl);
+        let repositoryDetails = await this.azureDevOpsClient.getRepositoryDetails(repositoryName, this.organizationName, this.projectName);
+        return repositoryDetails.id;
+    }
+
+    public async listOrganizations(): Promise<string[]> {
         let organizations = await this.azureDevOpsClient.listOrganizations();
-        let items: string[] = [];
+        let organizationNames: string[] = [];
         for (let organization of organizations.value) {
-            items.push(organization.accountName);
+            organizationNames.push(organization.accountName);
         }
 
-        //items.push("Create New Organization");
-        return vscode.window.showQuickPick(items, { placeHolder: "Select Azure DevOps Organization" }).then((selectedOrganization) => {
-            this.organizationName = selectedOrganization;
-            return selectedOrganization;
-        });
+        return organizationNames;
     }
 
+    public getOrganizationName(): string {
+        return this.organizationName;
+    }
+
+    /***
+     * This function will only set organization name if it is not already set.
+     * Once the value is set, it cannot be altered.
+     */
     public setOrganizationName(organizationName: string): void {
-        this.organizationName = organizationName;
+        if (!this.organizationName) {
+            this.organizationName = organizationName;
+        }
     }
 
-    public async getProjectName(): Promise<string> {
-        if (!!this.projectName) {
-            return this.projectName;
-        }
-
+    public async listProjects(): Promise<string[]> {
         let projects = await this.azureDevOpsClient.listProjects(this.organizationName);
         let items: string[] = [];
         for (let project of projects.value) {
             items.push(project.name);
         }
 
-        //items.push("Create New Project");
-        return vscode.window.showQuickPick(items, { placeHolder: "Select Azure DevOps project" }).then((selectedProject) => {
-            for (let project of projects.value) {
-                if (project.name === selectedProject) {
-                    this.projectName = project.id;
-                    return project.id;
-                }
-            }
-        });
+        return items;
     }
 
+    public getProjectName(): string {
+        return this.projectName;
+    }
+
+    /***
+     * This function will only set organization name if it is not already set.
+     * Once the value is set, it cannot be altered.
+     */
     public setProjectName(projectId: string): void {
-        this.projectName = projectId;
+        if (!this.projectName) {
+            this.projectName = projectId;
+        }
     }
 
-    public async createGitHubServiceConnection(gitHubPat: string, prefix: string) {
-        let endpointId: string = guidGenerator();
-        let endpointName: string = prefix.concat(endpointId.substr(0, 5));
-        await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: "Creating GitHub service connection" }, () => {
-            return this.azureDevOpsClient.createGitHubServiceConnection(endpointId, endpointName, gitHubPat, this.organizationName, this.projectName);
-        });
-
-        await this.waitForEndpointToBeReady(endpointId);
-        await this.azureDevOpsClient.authorizeEndpoint(endpointId, endpointName, this.organizationName, this.projectName)
+    public async createGitHubServiceConnection(gitHubPat: string, prefix: string): Promise<string> {
+        let endpointName: string = prefix.concat(guidGenerator().substr(0, 5));
+        let response = await this.azureDevOpsClient.createGitHubServiceConnection(endpointName, gitHubPat, this.organizationName, this.projectName);
+        let endpointId: string = response.id;
+        await this.waitForGitHubEndpointToBeReady(endpointId);
+        await this.azureDevOpsClient.authorizeEndpointForAllPipelines(endpointId, endpointName, this.organizationName, this.projectName)
             .then((response) => {
-                for (let endpointObject in response.value) {
-                    if (endpointObject.id === endpointId) {
-                        return;
-                    }
+                if (response.allPipelines.authorized !== true) {
+                    throw new Error("Could not authorize endpoint for use in Pipelines.")
                 }
-
-                throw new Error("Could not authorize endpoint for use in Pipelines.")
             });
 
         return endpointId;
@@ -94,15 +111,17 @@ export class AzureDevOpsService {
     }
 
     public async createAzureServiceConnection(inputs: WizardInputs, scope?: string, ): Promise<string> {
-        let endpointId: string = guidGenerator();
-        await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: "Creating Azure service connection" }, () => {
-            return this.azureDevOpsClient.createAzureServiceConnection(endpointId, inputs)
-                .then((response) => {
-                    return response = response.id;
-                });
-        });
-
+        let endpointName: string = guidGenerator();
+        let response = await this.azureDevOpsClient.createAzureServiceConnection(endpointName, inputs);
+        let endpointId = response.id;
         await this.waitForEndpointToBeReady(endpointId);
+        await this.azureDevOpsClient.authorizeEndpointForAllPipelines(endpointId, endpointName, this.organizationName, this.projectName)
+            .then((response) => {
+                if (response.allPipelines.authorized !== true) {
+                    throw new Error("Could not authorize endpoint for use in Pipelines.")
+                }
+            });
+
         return endpointId;
     }
 
@@ -115,40 +134,67 @@ export class AzureDevOpsService {
 
     }
 
-    public async listServiceConnections(type: ConnectionServiceType): Promise<Array<{ endpointId: string, endpointName: string }>> {
-        return this.azureDevOpsClient.listServiceConnections(type, this.organizationName, this.projectName)
-            .then((response) => {
-                response = response.value;
-                let endpoints: Array<{ endpointId: string, endpointName: string }> = [];
-                if (response) {
-                    for (let endpoint of response) {
-                        if (type && type.toLowerCase() === endpoint.type.toLowerCase()) {
-                            endpoints.push({ endpointId: endpoint.id, endpointName: endpoint.name });
-                        }
-                    }
-                }
-                return endpoints;
-            });
+    private setOrganizationAndProjectNameFromRepositoryUrl(remoteUrl: string): void {
+        if (remoteUrl.indexOf(AzureDevOpsService.AzureReposUrl) >= 0) {
+            let part = remoteUrl.substr(remoteUrl.indexOf(AzureDevOpsService.AzureReposUrl) + AzureDevOpsService.AzureReposUrl.length);
+            let parts = part.split("/");
+            this.organizationName = parts[0].trim();
+            this.projectName = parts[1].trim();
+        }
+        else if (remoteUrl.indexOf(AzureDevOpsService.VSOUrl) >= 0) {
+            let part = remoteUrl.substr(remoteUrl.indexOf(AzureDevOpsService.VSOUrl) + AzureDevOpsService.VSOUrl.length);
+            let parts = part.split("/");
+            this.organizationName = remoteUrl.substring(remoteUrl.indexOf("https://") + "https://".length, remoteUrl.indexOf(".visualstudio.com"));
+            this.projectName = parts[0].trim();
+        }
+        else {
+            throw new Error("Repo Url is not of Azure Repos type.");
+        }
     }
 
     private async waitForEndpointToBeReady(endpointId: string): Promise<void> {
         let retryCount = 1;
         while (1) {
-            let operationStatus = await this.azureDevOpsClient.getEndpointStatus(endpointId, this.organizationName, this.projectName)
-                .then((response) => {
-                    return response.operationStatus;
-                });
+            let response = await this.azureDevOpsClient.getEndpointStatus(endpointId, this.organizationName, this.projectName);
+            let operationStatus = response.operationStatus;
 
             if (operationStatus.state.toLowerCase() === "ready") {
                 break;
             }
 
             if (!(retryCount < 20) || operationStatus.state.toLowerCase() === "failed") {
-                vscode.window.showErrorMessage("Unable to create azure service connection.\nOperation Status: " + operationStatus.state + " \Message: " + operationStatus.statusMessage);
-                throw Error("service connection not ready");
+                throw Error("Unable to create azure service connection.\nOperation Status: " + operationStatus.state + " \Message: " + operationStatus.statusMessage + "\nService connection is not in ready state.");
             }
 
+            await this.sleepForMilliSeconds(2000);
             retryCount++;
         }
+    }
+
+    private async waitForGitHubEndpointToBeReady(endpointId: string): Promise<void> {
+        let retryCount = 1;
+        while (1) {
+            let response = await this.azureDevOpsClient.getEndpointStatus(endpointId, this.organizationName, this.projectName);
+            let isReady: boolean = response.isReady;
+
+            if (isReady === true) {
+                break;
+            }
+
+            if (!(retryCount < 20)) {
+                throw Error("Unable to create azure service connection.\nOperation Status: " + isReady + " \Message: " + operationStatus.statusMessage + "\nService connection is not in ready state.");
+            }
+
+            await this.sleepForMilliSeconds(2000);
+            retryCount++;
+        }
+    }
+
+    private async sleepForMilliSeconds(timeInMs: number) {
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                resolve();
+            }, timeInMs);
+        });
     }
 }

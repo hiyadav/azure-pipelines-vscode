@@ -53,6 +53,7 @@ export interface GitRepositoryDetails {
     sourceProvider: SourceProviderType;
     repositoryId: string;
     repositoryName: string;
+    remoteUrl: string;
     branch: string;
     commitId: string;
 }

@@ -34,5 +34,5 @@ steps:
   inputs:
     azureSubscription: '{{ azureServiceConnectionId }}'
     appType: webApp
-    appName: '{{ targetResource.webAppName }}'
+    appName: '{{ targetResource.name }}'
     package: $(Build.ArtifactStagingDirectory)/$(Build.BuildId).zip
