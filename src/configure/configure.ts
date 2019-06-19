@@ -1,62 +1,19 @@
 import * as vscode from 'vscode';
 
-import { createApiProvider, AzureTreeItem, registerUIExtensionVariables, AzureUserInput, UIExtensionVariables, createTelemetryReporter } from 'vscode-azureextensionui';
-import { AzureExtensionApi, AzureExtensionApiProvider } from 'vscode-azureextensionui/api';
+import { ResourceListResult, GenericResource } from 'azure-arm-resource/lib/resource/models';
+import { AzureTreeItem } from 'vscode-azureextensionui';
+import { QuickPickItem } from 'vscode';
 
+import { SourceOptions, SourceProviderType, extensionVariables, WizardInputs, PipelineTargets } from './model/models';
 import { AzureDevOpsService } from "./services/azureDevOpsService";
 import { SourceRepositoryService } from './services/source/sourceRepositoryService';
-import { SourceOptions, SourceProviderType, extensionVariables, WizardInputs } from './model/common';
 import { AzureService } from './services/target/azureService';
 import { listAppropriatePipeline, analyzeRepo, getPipelineTargetType, getPipelineFilePath } from './utility/pipelineHelper';
-import { ResourceListResult, GenericResource } from 'azure-arm-resource/lib/resource/models';
-import TelemetryReporter from 'vscode-extension-telemetry';
-
-export async function activateConfigurePipeline(context: vscode.ExtensionContext, reporter: TelemetryReporter): Promise<AzureExtensionApiProvider> {
-    extensionVariables.context = context;
-    extensionVariables.reporter = reporter;
-    extensionVariables.outputChannel = vscode.window.createOutputChannel('Azure Pipeline');
-    extensionVariables.context.subscriptions.push(extensionVariables.outputChannel);
-
-    let azureAccountExtension = vscode.extensions.getExtension("ms-vscode.azure-account");
-    if (!azureAccountExtension) {
-        throw new Error("Azure-Account extension could not be fetched. Kindly check it is installed and activated.")
-    }
-
-    if (!azureAccountExtension.isActive) {
-        await azureAccountExtension.activate();
-    }
-
-    extensionVariables.azureAccountApi = azureAccountExtension;
-
-    // The command has been defined in the package.json file
-    // Now provide the implementation of the command with registerCommand
-    // The commandId parameter must match the command field in package.json
-    vscode.commands.registerCommand('configure-pipeline', async (node: any) => {
-        // The code you place here will be executed every time your command is executed
-
-        await configurePipeline(node);
-
-    });
-
-    // register ui extension variables is required to be done for createApiProvider to be called.
-    let uIExtensionVariables: UIExtensionVariables = {
-        context: context,
-        outputChannel: extensionVariables.outputChannel,
-        ui: new AzureUserInput(context.globalState),
-        reporter: createTelemetryReporter(context)
-    };
-    registerUIExtensionVariables(uIExtensionVariables);
-    return createApiProvider([<AzureExtensionApi>
-        {
-            configurePipelineApi: configurePipeline,
-            apiVersion: "0.0.1"
-        }]);
-}
 
 export async function configurePipeline(node: any) {
     try {
         if (!(await extensionVariables.azureAccountApi.exports.waitForLogin())) {
-            throw new Error("Kindly log-in to Azure Account extension before going forward.")
+            throw new Error("Kindly log-in to Azure Account extension before going forward.");
         }
 
         initializeSetup();
@@ -93,7 +50,7 @@ async function getAllRequiredInputs(node: any) {
     await getAzureDevOpsDetails();
     await getSelectedPipeline();
 
-    if (!extensionVariables.pipelineTargetType) {
+    if (!extensionVariables.pipelineTargetType || extensionVariables.pipelineTargetType === PipelineTargets.None) {
         extensionVariables.pipelineTargetType = getPipelineTargetType(extensionVariables.inputs.selectedPipeline);
     }
 
@@ -126,11 +83,11 @@ async function analyzeNode(node: any) {
                     case "functionapp":
                     case "app,linux,container":
                     default:
-                        throw new Error("App of kind: " + azureResource.kind + " is not yet supported.");
+                        throw new Error(`App of kind: ${azureResource.kind} is not yet supported.`);
                 }
                 break;
             default:
-                throw new Error("Resource of type: " + azureResource.type + "is not yet supported for configuring pipelines.");
+                throw new Error(`Resource of type: ${azureResource.type} is not yet supported for configuring pipelines.`);
         }
     }
 
@@ -140,7 +97,7 @@ async function analyzeNode(node: any) {
 async function getSourceRepositoryDetails() {
     let selectedSourceOption: string = await vscode.window.showQuickPick(
         [SourceOptions.BrowseLocalMachine, SourceOptions.CurrentWorkspace, SourceOptions.GithubRepository],
-        { placeHolder: "Select the folderor repository to deploy" }
+        { placeHolder: "Select the folder or repository to deploy" }
     );
 
     let workspacePath = "";
@@ -155,6 +112,7 @@ async function getSourceRepositoryDetails() {
     }
 
     extensionVariables.inputs.sourceRepositoryDetails = await extensionVariables.sourceRepositoryService.getGitRepoDetails(workspacePath);
+    extensionVariables.inputs.sourceRepositoryDetails.localPath = workspacePath;
 
     if (extensionVariables.inputs.sourceRepositoryDetails.sourceProvider === SourceProviderType.AzureRepos) {
         extensionVariables.inputs.sourceRepositoryDetails.repositoryId = await extensionVariables.azureDevOpsService.getRepositoryId(extensionVariables.inputs.sourceRepositoryDetails.repositoryName, extensionVariables.inputs.sourceRepositoryDetails.remoteUrl);
@@ -162,6 +120,7 @@ async function getSourceRepositoryDetails() {
 }
 
 async function getAzureDevOpsDetails(): Promise<void> {
+    // TODO: handle space in project name and repo name.
     if (!extensionVariables.azureDevOpsService.getOrganizationName()) {
         let organizationList: string[] = await extensionVariables.azureDevOpsService.listOrganizations();
         let selectedOrganization = await vscode.window.showQuickPick(organizationList, { placeHolder: "Select Azure DevOps Organization" });
@@ -184,7 +143,9 @@ async function getAzureDevOpsDetails(): Promise<void> {
 }
 
 async function getSelectedPipeline(): Promise<void> {
-    let fileUris = await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: "Analyzing your repo" }, analyzeRepo);
+    let fileUris = await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: "Analyzing your repo" }, () => {
+        return analyzeRepo(extensionVariables.inputs.sourceRepositoryDetails.localPath);
+    });
     // TO:DO- Get applicable pipelines for the repo type and azure target type if target already selected
     let appropriatePipelines: string[] = await listAppropriatePipeline(fileUris[0], fileUris[1]);
     extensionVariables.inputs.selectedPipeline = await vscode.window.showQuickPick(appropriatePipelines, {
@@ -196,12 +157,13 @@ async function getAzureResourceDetails() {
 
     let subscriptions: [any] = extensionVariables.azureAccountApi.exports.subscriptions;
     let subscriptionList = subscriptions.map((subscriptionObject) => {
-        return {
+        return <QuickPickItem>{
             label: <string>subscriptionObject.subscription.displayName,
-            details: <string>subscriptionObject.subscription.subscriptionId
+            detail: <string>subscriptionObject.subscription.subscriptionId
         };
     });
-    extensionVariables.inputs.subscriptionId = (await vscode.window.showQuickPick(subscriptionList)).details;
+    let selectedSubscription: QuickPickItem = await vscode.window.showQuickPick(subscriptionList);
+    extensionVariables.inputs.subscriptionId = selectedSubscription.detail;
 
     extensionVariables.azureService = new AzureService(extensionVariables.inputs.authDetails.credentials, extensionVariables.inputs.subscriptionId);
     let resourceListResult: ResourceListResult = await extensionVariables.azureService.listResourcesOfType(extensionVariables.pipelineTargetType);
@@ -212,7 +174,7 @@ async function getAzureResourceDetails() {
         };
     });
 
-    let selectedResource: vscode.QuickPickItem = await vscode.window.showQuickPick(resourceDisplayList);
+    let selectedResource: vscode.QuickPickItem = await vscode.window.showQuickPick(resourceDisplayList, { placeHolder: "Select Web App " });
     extensionVariables.inputs.targetResource = resourceListResult.find((value: GenericResource) => {
         return value.id === selectedResource.description;
     });
@@ -236,7 +198,14 @@ async function getGitubConnectionService(): Promise<void> {
 async function getAzureRMServiceConnection(): Promise<void> {
     // TODO: show notification while setup is being done.
     // ?? should SPN created be scoped to resource group of target azure resource.
-    extensionVariables.inputs.azureServiceConnectionId = await extensionVariables.azureDevOpsService.createAzureServiceConnection(extensionVariables.inputs);
+    extensionVariables.inputs.azureServiceConnectionId = await vscode.window.withProgress(
+        {
+            location: vscode.ProgressLocation.Notification,
+            title: `Setting up Azure Pipelines connection with subscription: ${extensionVariables.inputs.subscriptionId}`
+        },
+        () => {
+            return extensionVariables.azureDevOpsService.createAzureServiceConnection(extensionVariables.inputs);
+        });
 }
 
 async function checkInPipelineFileToRepository() {

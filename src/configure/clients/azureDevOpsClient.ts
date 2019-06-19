@@ -2,8 +2,7 @@ import Mustache = require('mustache');
 
 import { ServiceClientCredentials, ServiceClient, UrlBasedRequestPrepareOptions } from 'ms-rest';
 
-import { Constants } from '../constants';
-import { WizardInputs } from '../model/Common';
+import { WizardInputs } from '../model/models';
 
 // TO-DO: add handling failure cases
 // either throw here or analyze in the calling service layer for any errors;
@@ -17,7 +16,7 @@ export class AzureDevOpsClient {
 
     public async getRepositoryDetails(repositoryName: string, organizationName?: string, projectName?: string): Promise<any> {
         return this.serviceClient.sendRequest<any>(<UrlBasedRequestPrepareOptions>{
-            url: "https://dev.azure.com/" + organizationName + "/" + projectName + "/_apis/git/repositories/" + repositoryName,
+            url: `https://dev.azure.com/${organizationName}/${projectName}/_apis/git/repositories/${repositoryName}`,
             headers: {
                 "Content-Type": "application/json",
             },
@@ -51,7 +50,7 @@ export class AzureDevOpsClient {
 
     public async listProjects(organizationName: string): Promise<any> {
         return this.serviceClient.sendRequest<any>(<UrlBasedRequestPrepareOptions>{
-            url: "https://" + organizationName + ".visualstudio.com/_apis/projects",
+            url: `https://${organizationName}.visualstudio.com/_apis/projects`,
             headers: {
                 "Content-Type": "application/json"
             },
@@ -66,7 +65,7 @@ export class AzureDevOpsClient {
 
     public async listServiceConnections(type: string, organizationName: string, projectName: string): Promise<any> {
         return this.serviceClient.sendRequest<any>(<UrlBasedRequestPrepareOptions>{
-            url: "https://" + organizationName + ".visualstudio.com/" + projectName + "/_apis/serviceendpoint/endpoints",
+            url: `https://${organizationName}.visualstudio.com/${projectName}/_apis/serviceendpoint/endpoints`,
             headers: {
                 "Content-Type": "application/json"
             },
@@ -81,7 +80,7 @@ export class AzureDevOpsClient {
 
     public async createGitHubServiceConnection(endpointName: string, gitHubPat: string, organizationName: string, projectName: string) {
         return this.serviceClient.sendRequest<any>(<UrlBasedRequestPrepareOptions>{
-            url: "https://" + organizationName + ".visualstudio.com/" + projectName + "/_apis/serviceendpoint/endpoints",
+            url: `https://${organizationName}.visualstudio.com/${projectName}/_apis/serviceendpoint/endpoints`,
             headers: {
                 "Content-Type": "application/json",
                 "Accept": "application/json;api-version=5.1-preview.2;excludeUrls=true"
@@ -110,7 +109,7 @@ export class AzureDevOpsClient {
 
     public async createAzureServiceConnection(endpointName: string, inputs: WizardInputs, scope?: string, ): Promise<any> {
         return this.serviceClient.sendRequest<any>(<UrlBasedRequestPrepareOptions>{
-            url: "https://" + inputs.organizationName + ".visualstudio.com/" + inputs.projectName + "/_apis/serviceendpoint/endpoints",
+            url: `https://${inputs.organizationName}.visualstudio.com/${inputs.projectName}/_apis/serviceendpoint/endpoints`,
             headers: {
                 "Content-Type": "application/json",
                 "Accept": "application/json;api-version=5.1-preview.2;excludeUrls=true"
@@ -154,7 +153,7 @@ export class AzureDevOpsClient {
 
     public async getEndpointStatus(endpointId: string, organizationName: string, projectName: string, ): Promise<any> {
         return this.serviceClient.sendRequest<any>(<UrlBasedRequestPrepareOptions>{
-            url: "https://" + organizationName + ".visualstudio.com/" + projectName + "/_apis/serviceendpoint/endpoints/" + endpointId,
+            url: `https://${organizationName}.visualstudio.com/${projectName}/_apis/serviceendpoint/endpoints/${endpointId}`,
             headers: {
                 "Content-Type": "application/json",
                 "Accept": "application/json;api-version=5.1-preview.2;excludeUrls=true"
@@ -167,7 +166,7 @@ export class AzureDevOpsClient {
 
     public async authorizeEndpointForAllPipelines(endpointId: string, endpointName: string, organizationName: string, projectName: string): Promise<any> {
         return this.serviceClient.sendRequest<any>(<UrlBasedRequestPrepareOptions>{
-            url: "https://" + organizationName + ".visualstudio.com/" + projectName + "/_apis/pipelines/pipelinePermissions/endpoint/" + endpointId,
+            url: `https://${organizationName}.visualstudio.com/${projectName}/_apis/pipelines/pipelinePermissions/endpoint/${endpointId}`,
             headers: {
                 "Content-Type": "application/json",
                 "Accept": "application/json;api-version=5.1-preview.1;excludeUrls=true;enumsAsNumbers=true;msDateFormat=true;noArrayWrap=true"
@@ -192,7 +191,7 @@ export class AzureDevOpsClient {
 
     public async createAndRunPipeline(pipelineConfiguration: WizardInputs): Promise<any> {
         return await this.serviceClient.sendRequest<any>(<UrlBasedRequestPrepareOptions>{
-            url: Mustache.render(Constants.createPipelineApi, pipelineConfiguration),
+            url: Mustache.render(createPipelineApi, pipelineConfiguration),
             headers: {
                 "Accept": "application/json;api-version=5.0-preview.1;excludeUrls=true;enumsAsNumbers=true;msDateFormat=true;noArrayWrap=true",
                 "Content-Type": "application/json"
@@ -229,7 +228,7 @@ export class AzureDevOpsClient {
 
     private getUserContext(): Promise<any> {
         return this.serviceClient.sendRequest<any>(<UrlBasedRequestPrepareOptions>{
-            url: "https://peprodscussu2.portalext.visualstudio.com/_apis/AzureTfs/UserContext",
+            url: "https://app.vssps.visualstudio.com/_apis/connectiondata",
             headers: {
                 "Content-Type": "application/json"
             },
@@ -239,3 +238,5 @@ export class AzureDevOpsClient {
         });
     }
 }
+
+const createPipelineApi: string = "https://{{organizationName}}.visualstudio.com/_apis/Contribution/HierarchyQuery";

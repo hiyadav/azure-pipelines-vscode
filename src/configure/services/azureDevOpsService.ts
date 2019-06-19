@@ -2,7 +2,7 @@ import * as guidGenerator from 'uuid/v1';
 
 import { ServiceClientCredentials } from 'ms-rest';
 
-import { GitRepositoryDetails, WizardInputs } from '../model/common';
+import { GitRepositoryDetails, WizardInputs } from '../model/models';
 import { AzureDevOpsClient } from '../clients/azureDevOpsClient';
 import { setTimeout } from 'timers';
 
@@ -99,7 +99,7 @@ export class AzureDevOpsService {
         await this.azureDevOpsClient.authorizeEndpointForAllPipelines(endpointId, endpointName, this.organizationName, this.projectName)
             .then((response) => {
                 if (response.allPipelines.authorized !== true) {
-                    throw new Error("Could not authorize endpoint for use in Pipelines.")
+                    throw new Error("Could not authorize endpoint for use in Pipelines.");
                 }
             });
 
@@ -118,7 +118,7 @@ export class AzureDevOpsService {
         await this.azureDevOpsClient.authorizeEndpointForAllPipelines(endpointId, endpointName, this.organizationName, this.projectName)
             .then((response) => {
                 if (response.allPipelines.authorized !== true) {
-                    throw new Error("Could not authorize endpoint for use in Pipelines.")
+                    throw new Error("Could not authorize endpoint for use in Pipelines.");
                 }
             });
 
@@ -163,7 +163,7 @@ export class AzureDevOpsService {
             }
 
             if (!(retryCount < 20) || operationStatus.state.toLowerCase() === "failed") {
-                throw Error("Unable to create azure service connection.\nOperation Status: " + operationStatus.state + " \Message: " + operationStatus.statusMessage + "\nService connection is not in ready state.");
+                throw Error(`Unable to create azure service connection.\nOperation Status: ${operationStatus.state} \nMessage: ${operationStatus.statusMessage} \nService connection is not in ready state.`);
             }
 
             await this.sleepForMilliSeconds(2000);
@@ -182,7 +182,7 @@ export class AzureDevOpsService {
             }
 
             if (!(retryCount < 20)) {
-                throw Error("Unable to create azure service connection.\nOperation Status: " + isReady + " \Message: " + operationStatus.statusMessage + "\nService connection is not in ready state.");
+                throw Error(`Unable to create azure service connection.\nOperation Status: ${isReady}\nService connection is not in ready state.`);
             }
 
             await this.sleepForMilliSeconds(2000);

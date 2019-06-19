@@ -8,29 +8,32 @@ import { SourceRepositoryService } from '../services/source/sourceRepositoryServ
 import { AzureService } from '../services/target/azureService';
 import TelemetryReporter from 'vscode-extension-telemetry';
 
-export namespace extensionVariables {
-    export let azureAccountApi: any;
-    export let outputChannel: OutputChannel;
-    export let reporter: TelemetryReporter;
-    export let context: ExtensionContext;
-    export let azureDevOpsService: AzureDevOpsService;
-    export let azureService: AzureService;
-    export let sourceRepositoryService: SourceRepositoryService;
-    export let pipelineTargetType: PipelineTargets;
-    export let inputs: WizardInputs;
+class ExtensionVariables {
+    public azureAccountApi: any;
+    public outputChannel: OutputChannel;
+    public reporter: TelemetryReporter;
+    public context: ExtensionContext;
+    public azureDevOpsService: AzureDevOpsService;
+    public azureService: AzureService;
+    public sourceRepositoryService: SourceRepositoryService;
+    public pipelineTargetType: PipelineTargets;
+    public inputs: WizardInputs;
 }
+
+let extensionVariables = new ExtensionVariables();
+export { extensionVariables };
 
 export class WizardInputs {
     authDetails: AzureAuthentication = new AzureAuthentication();
-	sourceRepositoryDetails: GitRepositoryDetails;
-	organizationName: string;
+    sourceRepositoryDetails: GitRepositoryDetails;
+    organizationName: string;
     projectName: string;
     selectedPipeline: string;
     sourceProviderConnectionId?: string;
     subscriptionId: string;
-	targetResource: GenericResource;
-	azureServiceConnectionId: string;
-	workingDirectory: string;
+    targetResource: GenericResource;
+    azureServiceConnectionId: string;
+    workingDirectory: string;
 }
 
 export class AzureAuthentication {
@@ -51,6 +54,7 @@ export enum SourceProviderType {
 
 export interface GitRepositoryDetails {
     sourceProvider: SourceProviderType;
+    localPath?: string;
     repositoryId: string;
     repositoryName: string;
     remoteUrl: string;
@@ -60,14 +64,7 @@ export interface GitRepositoryDetails {
 
 export enum PipelineTargets {
     None = 'none',
-    WindowsWebApp = 'Microsoft.WebApps'
-}
-
-export interface AzureTargetResource {
-    resourceType: PipelineTargets;
-    resourceName: string;
-    resourceId: string;
-    subscriptionId: string;
+    WindowsWebApp = 'windowsWebApp'
 }
 
 export enum ConnectionServiceType {

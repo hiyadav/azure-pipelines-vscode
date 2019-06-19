@@ -5,37 +5,38 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as Mustache from "mustache";
 
-import { GitRepositoryDetails, SourceProviderType } from '../../model/common';
+import { GitRepositoryDetails, SourceProviderType } from '../../model/models';
 import { AzureDevOpsService } from "../azureDevOpsService";
 import Q = require('q');
 import { GitHubProvider } from '../gitHubService';
+import { BranchSummary } from 'simple-git/typings/response';
 
 export class SourceRepositoryService {
     private gitReference: git.SimpleGit;
     
-    public async getGitRepoDetails(workspacePath: string): Promise<GitRepositoryDetails> {
-        let gitPath: string = path.join(workspacePath, '.git');
+    public async getGitRepoDetails(repositoryPath: string): Promise<GitRepositoryDetails> {
+        let gitPath: string = path.join(repositoryPath, '.git');
         if (!fs.existsSync(gitPath)) {
-            throw new Error("Git folder could not be found inside the folder at path: " + workspacePath);
+            throw new Error(`Git folder could not be found inside the folder at path: ${repositoryPath}`);
         }
 
-        this.gitReference = git(workspacePath);
+        this.gitReference = git(repositoryPath);
         let status = await this.gitReference.status();
         let branch = status.current;
+        let commitId = await this.getLatestCommitId(branch);
         let tracking = status.tracking.substr(0, status.tracking.indexOf(branch) - 1);
         let remoteUrl = await this.gitReference.remote(["get-url", tracking]);
 
         if (remoteUrl) {
             if (AzureDevOpsService.isAzureReposUrl(remoteUrl)) {
-                let gitDetails: GitRepositoryDetails = {
+                return <GitRepositoryDetails> {
                     sourceProvider: SourceProviderType.AzureRepos,
                     repositoryId: "",
                     repositoryName: AzureDevOpsService.getRepositoryNameFromRemoteUrl(remoteUrl),
                     remoteUrl: remoteUrl,
-                    branch: "",
-                    commitId: ""
+                    branch: branch,
+                    commitId: commitId
                 };
-                return gitDetails;
             }
             else if (GitHubProvider.isGitHubUrl(remoteUrl)) {
                 let repoId = GitHubProvider.getRepositoryIdFromUrl(remoteUrl);
@@ -44,8 +45,8 @@ export class SourceRepositoryService {
                     repositoryId: repoId,
                     repositoryName: repoId,
                     remoteUrl: remoteUrl,
-                    branch: "",
-                    commitId: ""
+                    branch: branch,
+                    commitId: commitId
                 };
             }
             else {
@@ -57,15 +58,13 @@ export class SourceRepositoryService {
         }
     }
 
-
-
     /**
      *
      * @param pipelineYamlPath : local path of yaml pipeline in the extension
      * @param context: inputs required to be filled in the yaml pipelines
      * @returns: thenable object which resolves once all files are added to the repository
      */
-    public addYmlFileToRepo(ymlFilePath: string, context: any) {
+    public addYmlFileToRepo(ymlFilePath: string, context: any): Q.Promise<string> {
         let deferred: Q.Deferred<string> = Q.defer();
         fs.readFile(ymlFilePath, { encoding: "utf8" }, async (error, data) => {
             if (error) {
@@ -112,5 +111,14 @@ export class SourceRepositoryService {
             branch: branch,
             commitId: commit.commit
         };
+    }
+
+    private async getLatestCommitId(branchName: string): Promise<string> {
+        let branchSummary: BranchSummary = await this.gitReference.branchLocal();
+        if (!!branchSummary.branches[branchName]) {
+            return branchSummary.branches[branchName].commit;
+        }
+
+        return "";
     }
 }

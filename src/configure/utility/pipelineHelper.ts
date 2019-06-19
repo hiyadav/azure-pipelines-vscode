@@ -2,7 +2,7 @@ import * as fs from "fs";
 import * as path from "path";
 
 import * as vscode from 'vscode';
-import { PipelineTargets } from "../model/common";
+import { PipelineTargets } from "../model/models";
 
 export async function listAppropriatePipeline(nodeUri: vscode.Uri[], dockerUri: vscode.Uri[]): Promise<string[]> {
     // TO-DO: To populate the possible pipelines on the basis of azure target resource.
@@ -20,13 +20,14 @@ export async function listAppropriatePipeline(nodeUri: vscode.Uri[], dockerUri: 
     return appropriatePipelines;
 }
 
-export async function analyzeRepo() {
+export async function analyzeRepo(repoPath: string) {
 	try {
-		fs.accessSync(path.join(vscode.workspace.workspaceFolders[0].uri.fsPath, "/.git"));
+		fs.accessSync(path.join(repoPath, "/.git"));
 	}
 	catch (error) {
-		throw new Error("Workspace is not a git repository. Configure this workspace as git repository");
-	}
+		throw new Error(`Path: ${repoPath} is not a git repository. Configure this folder as a git repository.`);
+    }
+    
 	let nodeFiles = vscode.workspace.findFiles("**/{package.json,*.ts,*.js}", "**/node_modules/**/package.json");
 	let dockerFiles = vscode.workspace.findFiles("Dockerfile");
 

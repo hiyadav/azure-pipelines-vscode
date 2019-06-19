@@ -1,4 +1,4 @@
-import { PipelineTargets } from "../../model/common";
+import { PipelineTargets } from "../../model/models";
 import { ServiceClientCredentials } from "ms-rest";
 import { AzureResourceClient } from "../../clients/azureResourceClient";
 import { ResourceListResult, GenericResource } from "azure-arm-resource/lib/resource/models";
