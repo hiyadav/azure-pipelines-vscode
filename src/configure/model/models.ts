@@ -7,9 +7,11 @@ import { AzureDevOpsService } from '../services/azureDevOpsService';
 import { SourceRepositoryService } from '../services/source/sourceRepositoryService';
 import { AzureService } from '../services/target/azureService';
 import TelemetryReporter from 'vscode-extension-telemetry';
+import { UIExtensionVariables } from 'vscode-azureextensionui';
 
 class ExtensionVariables {
     public azureAccountApi: any;
+    public uiExtensionVariables: UIExtensionVariables;
     public outputChannel: OutputChannel;
     public reporter: TelemetryReporter;
     public context: ExtensionContext;

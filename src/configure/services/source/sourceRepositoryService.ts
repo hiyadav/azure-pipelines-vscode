@@ -13,7 +13,7 @@ import { BranchSummary } from 'simple-git/typings/response';
 
 export class SourceRepositoryService {
     private gitReference: git.SimpleGit;
-    
+
     public async getGitRepoDetails(repositoryPath: string): Promise<GitRepositoryDetails> {
         let gitPath: string = path.join(repositoryPath, '.git');
         if (!fs.existsSync(gitPath)) {
@@ -64,7 +64,7 @@ export class SourceRepositoryService {
      * @param context: inputs required to be filled in the yaml pipelines
      * @returns: thenable object which resolves once all files are added to the repository
      */
-    public addYmlFileToRepo(ymlFilePath: string, context: any): Q.Promise<string> {
+    public addYmlFileToRepo(ymlFilePath: string, repoPath: string, context: any): Q.Promise<string> {
         let deferred: Q.Deferred<string> = Q.defer();
         fs.readFile(ymlFilePath, { encoding: "utf8" }, async (error, data) => {
             if (error) {
@@ -72,7 +72,7 @@ export class SourceRepositoryService {
             }
             else {
                 let fileContent = Mustache.render(data, context);
-                let ymlFileUri = vscode.Uri.file(vscode.workspace.workspaceFolders[0].uri.path + "/azure-pipelines.yml");
+                let ymlFileUri = vscode.Uri.file(repoPath + "/azure-pipelines.yml");
                 fs.writeFileSync(ymlFileUri.fsPath, fileContent);
                 await vscode.workspace.saveAll(true);
                 deferred.resolve(ymlFileUri.fsPath);

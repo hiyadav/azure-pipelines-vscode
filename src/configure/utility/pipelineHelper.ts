@@ -4,43 +4,48 @@ import * as path from "path";
 import * as vscode from 'vscode';
 import { PipelineTargets } from "../model/models";
 
-export async function listAppropriatePipeline(nodeUri: vscode.Uri[], dockerUri: vscode.Uri[]): Promise<string[]> {
+export async function analyzeRepoAndListAppropriatePipeline(repoPath: string): Promise<string[]> {
+    let fileUris = await analyzeRepo(repoPath);
+
     // TO-DO: To populate the possible pipelines on the basis of azure target resource.
-	let appropriatePipelines: string[] = [];
-	if (nodeUri.length === 0) {
-		throw new Error("Failed to detect Node.js application");
-	}
-	else if (dockerUri.length > 0) {
-		appropriatePipelines = [NodeOnContainers, NodeOnWindows];
-	}
-	else {
-		appropriatePipelines = [NodeOnWindows, NodeOnContainers];
+    let appropriatePipelines: string[] = [];
+    if (fileUris.nodeUris.length > 0) {
+        appropriatePipelines.push(NodeOnWindows);
     }
-    
+    else if (fileUris.dockerUris.length > 0) {
+        appropriatePipelines.push(NodeOnContainers);
+    }
+    else {
+        appropriatePipelines.push(NodeOnWindows, NodeOnContainers);
+    }
+
     return appropriatePipelines;
 }
 
-export async function analyzeRepo(repoPath: string) {
-	try {
-		fs.accessSync(path.join(repoPath, "/.git"));
-	}
-	catch (error) {
-		throw new Error(`Path: ${repoPath} is not a git repository. Configure this folder as a git repository.`);
+async function analyzeRepo(repoPath: string): Promise<{ nodeUris: Array<vscode.Uri>, dockerUris: Array<vscode.Uri> }> {
+    try {
+        fs.accessSync(path.join(repoPath, "/.git"));
     }
-    
-	let nodeFiles = vscode.workspace.findFiles("**/{package.json,*.ts,*.js}", "**/node_modules/**/package.json");
-	let dockerFiles = vscode.workspace.findFiles("Dockerfile");
+    catch (error) {
+        throw new Error(`Path: ${repoPath} is not a git repository. Configure this folder as a git repository.`);
+    }
 
-	return Promise.all([nodeFiles, dockerFiles]);
+    let nodeFiles = await vscode.workspace.findFiles("**/{package.json,*.ts,*.js}", "**/node_modules/**/package.json");
+    let dockerFiles = await vscode.workspace.findFiles("Dockerfile");
+
+    return {
+        nodeUris: nodeFiles,
+        dockerUris: dockerFiles
+    };
 }
 
 export function getPipelineTargetType(pipeline: string): PipelineTargets {
-	switch (pipeline) {
-		case NodeOnWindows:
-			return PipelineTargets.WindowsWebApp;
-		default:
-			return PipelineTargets.None;
-	}
+    switch (pipeline) {
+        case NodeOnWindows:
+            return PipelineTargets.WindowsWebApp;
+        default:
+            return PipelineTargets.None;
+    }
 }
 
 export function getPipelineFilePath(pipelineType: string) {
@@ -51,5 +56,5 @@ const NodeOnWindows = "Node.js with npm";
 const NodeOnContainers = "Node.js with containers";
 
 var fileMap: { [key: string]: string } = {};
-fileMap[NodeOnWindows] = path.join(path.dirname(path.dirname(__dirname)), "configurePipeline\\pipelines\\nodejs.yml");
-fileMap[NodeOnContainers] = path.join(path.dirname(path.dirname(__dirname)), "configurePipeline\\pipelines\\nodejs.yml");
+fileMap[NodeOnWindows] = path.join(path.dirname(path.dirname(__dirname)), "configure\\pipelines\\nodejs.yml");
+fileMap[NodeOnContainers] = path.join(path.dirname(path.dirname(__dirname)), "configure\\pipelines\\nodejs.yml");

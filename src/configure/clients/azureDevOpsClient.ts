@@ -30,8 +30,8 @@ export class AzureDevOpsClient {
     }
 
     public async listOrganizations(): Promise<any> {
-        return this.getUserContext()
-            .then((userContext) => {
+        return this.getConnectionData()
+            .then((connectionData) => {
                 return this.serviceClient.sendRequest<any>(<UrlBasedRequestPrepareOptions>{
                     url: "https://app.vssps.visualstudio.com/_apis/accounts",
                     headers: {
@@ -39,7 +39,7 @@ export class AzureDevOpsClient {
                     },
                     method: "GET",
                     queryParameters: {
-                        "memberId": userContext.id,
+                        "memberId": connectionData.authenticatedUser.id,
                         "api-version": "5.0-preview.1"
                     },
                     deserializationMapper: null,
@@ -92,7 +92,7 @@ export class AzureDevOpsClient {
                     "parameters": {
                         "accessToken": gitHubPat
                     },
-                    "scheme": "ServicePrincipal"
+                    "scheme": "PersonalAccessToken"
                 },
                 "description": "",
                 "groupScopeId": null,
@@ -226,7 +226,7 @@ export class AzureDevOpsClient {
         });
     }
 
-    private getUserContext(): Promise<any> {
+    private getConnectionData(): Promise<any> {
         return this.serviceClient.sendRequest<any>(<UrlBasedRequestPrepareOptions>{
             url: "https://app.vssps.visualstudio.com/_apis/connectiondata",
             headers: {

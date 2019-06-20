@@ -110,6 +110,7 @@
         "unittest": "node_modules/.bin/mocha -u tdd out/unittest/*.js"
     },
     "devDependencies": {
+        "ajv": "^6.9.1",
         "assert": "1.4.1",
         "tslint": "^5.8.0",
         "mocha": "^5.2.0",

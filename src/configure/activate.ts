@@ -34,13 +34,13 @@ export async function activateConfigurePipeline(context: vscode.ExtensionContext
     });
 
     // register ui extension variables is required to be done for createApiProvider to be called.
-    let uIExtensionVariables: UIExtensionVariables = {
+    extensionVariables.uiExtensionVariables = {
         context: context,
         outputChannel: extensionVariables.outputChannel,
         ui: new AzureUserInput(context.globalState),
         reporter: extensionVariables.reporter
     };
-    registerUIExtensionVariables(uIExtensionVariables);
+    registerUIExtensionVariables(extensionVariables.uiExtensionVariables);
     return createApiProvider([<AzureExtensionApi>
         {
             configurePipelineApi: configurePipeline,

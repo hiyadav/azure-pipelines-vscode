@@ -8,7 +8,7 @@ import { SourceOptions, SourceProviderType, extensionVariables, WizardInputs, Pi
 import { AzureDevOpsService } from "./services/azureDevOpsService";
 import { SourceRepositoryService } from './services/source/sourceRepositoryService';
 import { AzureService } from './services/target/azureService';
-import { listAppropriatePipeline, analyzeRepo, getPipelineTargetType, getPipelineFilePath } from './utility/pipelineHelper';
+import { analyzeRepoAndListAppropriatePipeline, getPipelineTargetType, getPipelineFilePath } from './utility/pipelineHelper';
 
 export async function configurePipeline(node: any) {
     try {
@@ -94,19 +94,33 @@ async function analyzeNode(node: any) {
     // also check if the node type is of  file explorer type and extra the git repo details in that case.
 }
 
-async function getSourceRepositoryDetails() {
-    let selectedSourceOption: string = await vscode.window.showQuickPick(
-        [SourceOptions.BrowseLocalMachine, SourceOptions.CurrentWorkspace, SourceOptions.GithubRepository],
+async function getSourceRepositoryDetails(): Promise<void> {
+    let sourceOptions: Array<QuickPickItem> = [{ label: SourceOptions.BrowseLocalMachine }];
+    if (vscode.workspace && vscode.workspace.rootPath) {
+        sourceOptions.push({ label: SourceOptions.CurrentWorkspace });
+    }
+
+    let selectedSourceOption = await extensionVariables.uiExtensionVariables.ui.showQuickPick(
+        sourceOptions,
         { placeHolder: "Select the folder or repository to deploy" }
     );
 
     let workspacePath = "";
-    switch (selectedSourceOption) {
+    switch (selectedSourceOption.label) {
         case SourceOptions.BrowseLocalMachine:
-            workspacePath = vscode.workspace.rootPath;
+            let selectedFolder: vscode.Uri[] = await vscode.window.showOpenDialog(
+                {
+                    openLabel: "Select the git repository folder to deploy",
+                    canSelectFiles: false,
+                    canSelectFolders: true,
+                    canSelectMany: false
+                }
+            );
+            if (selectedFolder && selectedFolder.length > 0) {
+                workspacePath = selectedFolder[0].fsPath;
+            }
             break;
         case SourceOptions.CurrentWorkspace:
-        case SourceOptions.GithubRepository:
         default:
             workspacePath = vscode.workspace.rootPath;
     }
@@ -123,9 +137,9 @@ async function getAzureDevOpsDetails(): Promise<void> {
     // TODO: handle space in project name and repo name.
     if (!extensionVariables.azureDevOpsService.getOrganizationName()) {
         let organizationList: string[] = await extensionVariables.azureDevOpsService.listOrganizations();
-        let selectedOrganization = await vscode.window.showQuickPick(organizationList, { placeHolder: "Select Azure DevOps Organization" });
-        extensionVariables.azureDevOpsService.setOrganizationName(selectedOrganization);
-        extensionVariables.inputs.organizationName = selectedOrganization;
+        let selectedOrganization = await extensionVariables.uiExtensionVariables.ui.showQuickPick(organizationList.map((org) => { return { label: org }; }), { placeHolder: "Select Azure DevOps Organization" });
+        extensionVariables.azureDevOpsService.setOrganizationName(selectedOrganization.label);
+        extensionVariables.inputs.organizationName = selectedOrganization.label;
     }
     else {
         extensionVariables.inputs.organizationName = extensionVariables.azureDevOpsService.getOrganizationName();
@@ -133,9 +147,9 @@ async function getAzureDevOpsDetails(): Promise<void> {
 
     if (!extensionVariables.azureDevOpsService.getProjectName()) {
         let projectList = await extensionVariables.azureDevOpsService.listProjects();
-        let selectedProject = await vscode.window.showQuickPick(projectList, { placeHolder: "Select Azure DevOps project" });
-        extensionVariables.azureDevOpsService.setProjectName(selectedProject);
-        extensionVariables.inputs.projectName = selectedProject;
+        let selectedProject = await extensionVariables.uiExtensionVariables.ui.showQuickPick(projectList.map((project) => { return { label: project }; }), { placeHolder: "Select Azure DevOps project" });
+        extensionVariables.azureDevOpsService.setProjectName(selectedProject.label);
+        extensionVariables.inputs.projectName = selectedProject.label;
     }
     else {
         extensionVariables.inputs.projectName = extensionVariables.azureDevOpsService.getProjectName();
@@ -143,14 +157,15 @@ async function getAzureDevOpsDetails(): Promise<void> {
 }
 
 async function getSelectedPipeline(): Promise<void> {
-    let fileUris = await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: "Analyzing your repo" }, () => {
-        return analyzeRepo(extensionVariables.inputs.sourceRepositoryDetails.localPath);
+    let appropriatePipelines: string[] = await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: "Analyzing your repo" }, () => {
+        return analyzeRepoAndListAppropriatePipeline(extensionVariables.inputs.sourceRepositoryDetails.localPath);
     });
+
     // TO:DO- Get applicable pipelines for the repo type and azure target type if target already selected
-    let appropriatePipelines: string[] = await listAppropriatePipeline(fileUris[0], fileUris[1]);
-    extensionVariables.inputs.selectedPipeline = await vscode.window.showQuickPick(appropriatePipelines, {
-        placeHolder: "Select Azure pipelines template .."
+    let selectedOption = await extensionVariables.uiExtensionVariables.ui.showQuickPick(appropriatePipelines.map((pipeline) => { return { label: pipeline }; }), {
+        placeHolder: "Select Azure pipelines template..."
     });
+    extensionVariables.inputs.selectedPipeline = selectedOption.label;
 }
 
 async function getAzureResourceDetails() {
@@ -162,7 +177,7 @@ async function getAzureResourceDetails() {
             detail: <string>subscriptionObject.subscription.subscriptionId
         };
     });
-    let selectedSubscription: QuickPickItem = await vscode.window.showQuickPick(subscriptionList);
+    let selectedSubscription: QuickPickItem = await extensionVariables.uiExtensionVariables.ui.showQuickPick(subscriptionList, { placeHolder: "Select Azure Subscription" });
     extensionVariables.inputs.subscriptionId = selectedSubscription.detail;
 
     extensionVariables.azureService = new AzureService(extensionVariables.inputs.authDetails.credentials, extensionVariables.inputs.subscriptionId);
@@ -170,18 +185,18 @@ async function getAzureResourceDetails() {
     let resourceDisplayList = resourceListResult.map((resource) => {
         return <vscode.QuickPickItem>{
             label: resource.name,
-            description: resource.id
+            detail: resource.id
         };
     });
 
-    let selectedResource: vscode.QuickPickItem = await vscode.window.showQuickPick(resourceDisplayList, { placeHolder: "Select Web App " });
+    let selectedResource: vscode.QuickPickItem = await extensionVariables.uiExtensionVariables.ui.showQuickPick(resourceDisplayList, { placeHolder: "Select Web App " });
     extensionVariables.inputs.targetResource = resourceListResult.find((value: GenericResource) => {
-        return value.id === selectedResource.description;
+        return value.id === selectedResource.detail;
     });
 }
 
 async function getGitubConnectionService(): Promise<void> {
-    let githubPat = await vscode.window.showInputBox({ placeHolder: "Enter GitHub PAT token" });
+    let githubPat = await extensionVariables.uiExtensionVariables.ui.showInputBox({ placeHolder: "Enter GitHub PAT token" });
     await vscode.window.withProgress(
         {
             location: vscode.ProgressLocation.Notification,
@@ -209,7 +224,7 @@ async function getAzureRMServiceConnection(): Promise<void> {
 }
 
 async function checkInPipelineFileToRepository() {
-    let ymlFilePath: string = await extensionVariables.sourceRepositoryService.addYmlFileToRepo(getPipelineFilePath(extensionVariables.inputs.selectedPipeline), extensionVariables.inputs);
+    let ymlFilePath: string = await extensionVariables.sourceRepositoryService.addYmlFileToRepo(getPipelineFilePath(extensionVariables.inputs.selectedPipeline), extensionVariables.inputs.sourceRepositoryDetails.localPath, extensionVariables.inputs);
     await vscode.window.showTextDocument(vscode.Uri.file(ymlFilePath));
     await vscode.window.showInformationMessage("Modify and commit yaml pipeline file to deploy.", "Commit", "Discard Pipeline")
         .then((commitOrDiscard: string) => {
