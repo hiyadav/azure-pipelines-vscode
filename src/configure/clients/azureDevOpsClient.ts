@@ -29,7 +29,7 @@ export class AzureDevOpsClient {
         });
     }
 
-    public async listOrganizations(): Promise<any> {
+    public async listOrganizations(): Promise<{count: number, value: [{accountId: string, accountName: string, accountUri: string, properties: {}}]}> {
         return this.getConnectionData()
             .then((connectionData) => {
                 return this.serviceClient.sendRequest<any>(<UrlBasedRequestPrepareOptions>{
@@ -40,7 +40,7 @@ export class AzureDevOpsClient {
                     method: "GET",
                     queryParameters: {
                         "memberId": connectionData.authenticatedUser.id,
-                        "api-version": "5.0-preview.1"
+                        "api-version": "5.0"
                     },
                     deserializationMapper: null,
                     serializationMapper: null
@@ -191,7 +191,7 @@ export class AzureDevOpsClient {
 
     public async createAndRunPipeline(pipelineConfiguration: WizardInputs): Promise<any> {
         return await this.serviceClient.sendRequest<any>(<UrlBasedRequestPrepareOptions>{
-            url: Mustache.render(createPipelineApi, pipelineConfiguration),
+            url: Mustache.render("https://{{organizationName}}.visualstudio.com/_apis/Contribution/HierarchyQuery", pipelineConfiguration),
             headers: {
                 "Accept": "application/json;api-version=5.0-preview.1;excludeUrls=true;enumsAsNumbers=true;msDateFormat=true;noArrayWrap=true",
                 "Content-Type": "application/json"
@@ -238,5 +238,3 @@ export class AzureDevOpsClient {
         });
     }
 }
-
-const createPipelineApi: string = "https://{{organizationName}}.visualstudio.com/_apis/Contribution/HierarchyQuery";

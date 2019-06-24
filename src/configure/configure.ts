@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 
 import { ResourceListResult, GenericResource } from 'azure-arm-resource/lib/resource/models';
+import { SubscriptionModels } from 'azure-arm-resource';
 import { AzureTreeItem } from 'vscode-azureextensionui';
 import { QuickPickItem } from 'vscode';
 
@@ -169,29 +170,28 @@ async function getSelectedPipeline(): Promise<void> {
 }
 
 async function getAzureResourceDetails() {
-
-    let subscriptions: [any] = extensionVariables.azureAccountApi.exports.subscriptions;
+    let subscriptions: [{session: any, subscription: SubscriptionModels.Subscription}] = extensionVariables.azureAccountApi.exports.subscriptions;
     let subscriptionList = subscriptions.map((subscriptionObject) => {
         return <QuickPickItem>{
-            label: <string>subscriptionObject.subscription.displayName,
-            detail: <string>subscriptionObject.subscription.subscriptionId
+            label: <string>subscriptionObject.subscription.displayName
         };
     });
     let selectedSubscription: QuickPickItem = await extensionVariables.uiExtensionVariables.ui.showQuickPick(subscriptionList, { placeHolder: "Select Azure Subscription" });
-    extensionVariables.inputs.subscriptionId = selectedSubscription.detail;
+    extensionVariables.inputs.subscriptionId = subscriptions.find((subscriptionObject) => {
+        return subscriptionObject.subscription.displayName === selectedSubscription.label;
+    }).subscription.subscriptionId;
 
     extensionVariables.azureService = new AzureService(extensionVariables.inputs.authDetails.credentials, extensionVariables.inputs.subscriptionId);
     let resourceListResult: ResourceListResult = await extensionVariables.azureService.listResourcesOfType(extensionVariables.pipelineTargetType);
     let resourceDisplayList = resourceListResult.map((resource) => {
         return <vscode.QuickPickItem>{
-            label: resource.name,
-            detail: resource.id
+            label: resource.name
         };
     });
 
     let selectedResource: vscode.QuickPickItem = await extensionVariables.uiExtensionVariables.ui.showQuickPick(resourceDisplayList, { placeHolder: "Select Web App " });
     extensionVariables.inputs.targetResource = resourceListResult.find((value: GenericResource) => {
-        return value.id === selectedResource.detail;
+        return value.name === selectedResource.label;
     });
 }
 
@@ -216,7 +216,7 @@ async function getAzureRMServiceConnection(): Promise<void> {
     extensionVariables.inputs.azureServiceConnectionId = await vscode.window.withProgress(
         {
             location: vscode.ProgressLocation.Notification,
-            title: `Setting up Azure Pipelines connection with subscription: ${extensionVariables.inputs.subscriptionId}`
+            title: `Connecting azure pipelines with your subscription: ${extensionVariables.inputs.subscriptionId}`
         },
         () => {
             return extensionVariables.azureDevOpsService.createAzureServiceConnection(extensionVariables.inputs);
@@ -226,9 +226,9 @@ async function getAzureRMServiceConnection(): Promise<void> {
 async function checkInPipelineFileToRepository() {
     let ymlFilePath: string = await extensionVariables.sourceRepositoryService.addYmlFileToRepo(getPipelineFilePath(extensionVariables.inputs.selectedPipeline), extensionVariables.inputs.sourceRepositoryDetails.localPath, extensionVariables.inputs);
     await vscode.window.showTextDocument(vscode.Uri.file(ymlFilePath));
-    await vscode.window.showInformationMessage("Modify and commit yaml pipeline file to deploy.", "Commit", "Discard Pipeline")
+    await vscode.window.showInformationMessage("Modify and commit yaml pipeline file to deploy.", "Commit & Push", "Discard Pipeline")
         .then((commitOrDiscard: string) => {
-            if (commitOrDiscard.toLowerCase() === "commit") {
+            if (commitOrDiscard.toLowerCase() === "commit & push") {
                 return vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: "Configuring Azure DevOps Pipeline and proceeding to deployment..." }, async (progress) => {
                     // handle when the branch is not upto date with remote branch and push fails
                     let commitDetails = await extensionVariables.sourceRepositoryService.commitAndPushPipelineFile(ymlFilePath);

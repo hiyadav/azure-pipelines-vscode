@@ -1,4 +1,4 @@
-import { OutputChannel, ExtensionContext } from 'vscode';
+import { OutputChannel } from 'vscode';
 
 import { GenericResource } from 'azure-arm-resource/lib/resource/models';
 import { ServiceClientCredentials } from 'ms-rest';
@@ -14,7 +14,6 @@ class ExtensionVariables {
     public uiExtensionVariables: UIExtensionVariables;
     public outputChannel: OutputChannel;
     public reporter: TelemetryReporter;
-    public context: ExtensionContext;
     public azureDevOpsService: AzureDevOpsService;
     public azureService: AzureService;
     public sourceRepositoryService: SourceRepositoryService;

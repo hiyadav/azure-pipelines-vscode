@@ -4,7 +4,7 @@
     "description": "Syntax highlighting, IntelliSense, and more for Azure Pipelines YAML",
     "version": "1.152.0",
     "publisher": "ms-azure-devops",
-    "aiKey": "AIF-d9b70cd4-b9f9-4d70-929b-a071c400b218",
+    "aiKey": "ae672644-d394-497c-8c57-98f6eac32342",
     "repository": {
         "type": "git",
         "url": "https://github.com/Microsoft/azure-pipelines-vscode"
@@ -128,9 +128,8 @@
         "@types/request-promise": "4.1.41"
     },
     "dependencies": {
-        "azure-arm-resource": "^3.0.0-preview",
+        "azure-arm-resource": "7.3.0",
         "azure-pipelines-language-server": "0.5.4",
-        "fs-extra": "^4.0.2",
         "mustache": "^3.0.1",
         "q": "^1.5.1",
         "request": "^2.83.0",
