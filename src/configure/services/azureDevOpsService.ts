@@ -2,7 +2,7 @@ import * as guidGenerator from 'uuid/v1';
 
 import { ServiceClientCredentials } from 'ms-rest';
 
-import { GitRepositoryDetails, WizardInputs } from '../model/models';
+import { WizardInputs } from '../model/models';
 import { AzureDevOpsClient } from '../clients/azureDevOpsClient';
 import { setTimeout } from 'timers';
 
@@ -96,7 +96,7 @@ export class AzureDevOpsService {
         let response = await this.azureDevOpsClient.createGitHubServiceConnection(endpointName, gitHubPat, this.organizationName, this.projectName);
         let endpointId: string = response.id;
         await this.waitForGitHubEndpointToBeReady(endpointId);
-        await this.azureDevOpsClient.authorizeEndpointForAllPipelines(endpointId, endpointName, this.organizationName, this.projectName)
+        await this.azureDevOpsClient.authorizeEndpointForAllPipelines(endpointId, this.organizationName, this.projectName)
             .then((response) => {
                 if (response.allPipelines.authorized !== true) {
                     throw new Error("Could not authorize endpoint for use in Pipelines.");
@@ -106,16 +106,12 @@ export class AzureDevOpsService {
         return endpointId;
     }
 
-    public async analyzeRepoAndSuggestPipelines(repoDetails: GitRepositoryDetails) {
-
-    }
-
-    public async createAzureServiceConnection(inputs: WizardInputs, scope?: string, ): Promise<string> {
-        let endpointName: string = guidGenerator();
+    public async createAzureServiceConnection(prefix: string, inputs: WizardInputs, scope?: string, ): Promise<string> {
+        let endpointName: string = prefix.concat(guidGenerator().substr(0, 5));
         let response = await this.azureDevOpsClient.createAzureServiceConnection(endpointName, inputs);
         let endpointId = response.id;
         await this.waitForEndpointToBeReady(endpointId);
-        await this.azureDevOpsClient.authorizeEndpointForAllPipelines(endpointId, endpointName, this.organizationName, this.projectName)
+        await this.azureDevOpsClient.authorizeEndpointForAllPipelines(endpointId, this.organizationName, this.projectName)
             .then((response) => {
                 if (response.allPipelines.authorized !== true) {
                     throw new Error("Could not authorize endpoint for use in Pipelines.");

@@ -91,43 +91,50 @@ async function analyzeNode(node: any) {
                 throw new Error(`Resource of type: ${azureResource.type} is not yet supported for configuring pipelines.`);
         }
     }
-
+    else if (node && node.fsPath) {
+        await getGitDetailsFromRepository(vscode.workspace.rootPath);
+    }
     // also check if the node type is of  file explorer type and extra the git repo details in that case.
 }
 
 async function getSourceRepositoryDetails(): Promise<void> {
-    let sourceOptions: Array<QuickPickItem> = [{ label: SourceOptions.BrowseLocalMachine }];
-    if (vscode.workspace && vscode.workspace.rootPath) {
-        sourceOptions.push({ label: SourceOptions.CurrentWorkspace });
-    }
+    if (!extensionVariables.inputs.sourceRepositoryDetails) {
+        let sourceOptions: Array<QuickPickItem> = [{ label: SourceOptions.BrowseLocalMachine }];
+        if (vscode.workspace && vscode.workspace.rootPath) {
+            sourceOptions.push({ label: SourceOptions.CurrentWorkspace });
+        }
 
-    let selectedSourceOption = await extensionVariables.uiExtensionVariables.ui.showQuickPick(
-        sourceOptions,
-        { placeHolder: "Select the folder or repository to deploy" }
-    );
+        let selectedSourceOption = await extensionVariables.uiExtensionVariables.ui.showQuickPick(
+            sourceOptions,
+            { placeHolder: "Select the folder or repository to deploy" }
+        );
 
-    let workspacePath = "";
-    switch (selectedSourceOption.label) {
-        case SourceOptions.BrowseLocalMachine:
-            let selectedFolder: vscode.Uri[] = await vscode.window.showOpenDialog(
-                {
-                    openLabel: "Select the git repository folder to deploy",
-                    canSelectFiles: false,
-                    canSelectFolders: true,
-                    canSelectMany: false
+        let workspacePath = "";
+        switch (selectedSourceOption.label) {
+            case SourceOptions.BrowseLocalMachine:
+                let selectedFolder: vscode.Uri[] = await vscode.window.showOpenDialog(
+                    {
+                        openLabel: "Select the git repository folder to deploy",
+                        canSelectFiles: false,
+                        canSelectFolders: true,
+                        canSelectMany: false
+                    }
+                );
+                if (selectedFolder && selectedFolder.length > 0) {
+                    workspacePath = selectedFolder[0].fsPath;
                 }
-            );
-            if (selectedFolder && selectedFolder.length > 0) {
-                workspacePath = selectedFolder[0].fsPath;
-            }
-            break;
-        case SourceOptions.CurrentWorkspace:
-        default:
-            workspacePath = vscode.workspace.rootPath;
-    }
+                break;
+            case SourceOptions.CurrentWorkspace:
+            default:
+                workspacePath = vscode.workspace.rootPath;
+        }
 
+        await getGitDetailsFromRepository(workspacePath);
+    }
+}
+
+async function getGitDetailsFromRepository(workspacePath: string): Promise<void> {
     extensionVariables.inputs.sourceRepositoryDetails = await extensionVariables.sourceRepositoryService.getGitRepoDetails(workspacePath);
-    extensionVariables.inputs.sourceRepositoryDetails.localPath = workspacePath;
 
     if (extensionVariables.inputs.sourceRepositoryDetails.sourceProvider === SourceProviderType.AzureRepos) {
         extensionVariables.inputs.sourceRepositoryDetails.repositoryId = await extensionVariables.azureDevOpsService.getRepositoryId(extensionVariables.inputs.sourceRepositoryDetails.repositoryName, extensionVariables.inputs.sourceRepositoryDetails.remoteUrl);
@@ -169,8 +176,8 @@ async function getSelectedPipeline(): Promise<void> {
     extensionVariables.inputs.selectedPipeline = selectedOption.label;
 }
 
-async function getAzureResourceDetails() {
-    let subscriptions: [{session: any, subscription: SubscriptionModels.Subscription}] = extensionVariables.azureAccountApi.exports.subscriptions;
+async function getAzureResourceDetails(): Promise<void> {
+    let subscriptions: [{ session: any, subscription: SubscriptionModels.Subscription }] = extensionVariables.azureAccountApi.exports.subscriptions;
     let subscriptionList = subscriptions.map((subscriptionObject) => {
         return <QuickPickItem>{
             label: <string>subscriptionObject.subscription.displayName
@@ -219,7 +226,7 @@ async function getAzureRMServiceConnection(): Promise<void> {
             title: `Connecting azure pipelines with your subscription: ${extensionVariables.inputs.subscriptionId}`
         },
         () => {
-            return extensionVariables.azureDevOpsService.createAzureServiceConnection(extensionVariables.inputs);
+            return extensionVariables.azureDevOpsService.createAzureServiceConnection(extensionVariables.inputs.targetResource.name ,extensionVariables.inputs);
         });
 }
 

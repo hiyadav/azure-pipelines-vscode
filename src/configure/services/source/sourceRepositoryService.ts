@@ -35,7 +35,8 @@ export class SourceRepositoryService {
                     repositoryName: AzureDevOpsService.getRepositoryNameFromRemoteUrl(remoteUrl),
                     remoteUrl: remoteUrl,
                     branch: branch,
-                    commitId: commitId
+                    commitId: commitId,
+                    localPath: repositoryPath
                 };
             }
             else if (GitHubProvider.isGitHubUrl(remoteUrl)) {
@@ -46,7 +47,8 @@ export class SourceRepositoryService {
                     repositoryName: repoId,
                     remoteUrl: remoteUrl,
                     branch: branch,
-                    commitId: commitId
+                    commitId: commitId,
+                    localPath: repositoryPath
                 };
             }
             else {

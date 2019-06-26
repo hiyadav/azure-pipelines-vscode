@@ -17,7 +17,7 @@ export class AzureResourceClient {
         if (followNextLink) {
             let nextLink: string = resourceListResult.nextLink;
             while (!!nextLink) {
-                let nextResourceListResult = await this.azureRmClient.resources.listNext(resourceListResult.nextLink);
+                let nextResourceListResult = await this.azureRmClient.resources.listNext(nextLink);
                 resourceListResult = resourceListResult.concat(nextResourceListResult);
                 nextLink = nextResourceListResult.nextLink;
             }

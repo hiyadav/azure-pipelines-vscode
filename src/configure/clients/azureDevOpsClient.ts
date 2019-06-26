@@ -14,7 +14,7 @@ export class AzureDevOpsClient {
         this.serviceClient = new ServiceClient(credentials);
     }
 
-    public async getRepositoryDetails(repositoryName: string, organizationName?: string, projectName?: string): Promise<any> {
+    public async getRepositoryDetails(repositoryName: string, organizationName: string, projectName: string): Promise<any> {
         return this.serviceClient.sendRequest<any>(<UrlBasedRequestPrepareOptions>{
             url: `https://dev.azure.com/${organizationName}/${projectName}/_apis/git/repositories/${repositoryName}`,
             headers: {
@@ -57,21 +57,6 @@ export class AzureDevOpsClient {
             method: "GET",
             queryParameters: {
                 "includeCapabilities": "true"
-            },
-            deserializationMapper: null,
-            serializationMapper: null
-        });
-    }
-
-    public async listServiceConnections(type: string, organizationName: string, projectName: string): Promise<any> {
-        return this.serviceClient.sendRequest<any>(<UrlBasedRequestPrepareOptions>{
-            url: `https://${organizationName}.visualstudio.com/${projectName}/_apis/serviceendpoint/endpoints`,
-            headers: {
-                "Content-Type": "application/json"
-            },
-            method: "GET",
-            queryParameters: {
-                "includeFailed": "false"
             },
             deserializationMapper: null,
             serializationMapper: null
@@ -164,7 +149,7 @@ export class AzureDevOpsClient {
         });
     }
 
-    public async authorizeEndpointForAllPipelines(endpointId: string, endpointName: string, organizationName: string, projectName: string): Promise<any> {
+    public async authorizeEndpointForAllPipelines(endpointId: string, organizationName: string, projectName: string): Promise<any> {
         return this.serviceClient.sendRequest<any>(<UrlBasedRequestPrepareOptions>{
             url: `https://${organizationName}.visualstudio.com/${projectName}/_apis/pipelines/pipelinePermissions/endpoint/${endpointId}`,
             headers: {
