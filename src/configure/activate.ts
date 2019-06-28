@@ -22,7 +22,7 @@ export async function activateConfigurePipeline(context: vscode.ExtensionContext
         await azureAccountExtension.activate();
     }
 
-    extensionVariables.azureAccountApi = azureAccountExtension;
+    extensionVariables.azureAccountExtensionApi = azureAccountExtension;
 
     // The command has been defined in the package.json file
     // Now provide the implementation of the command with registerCommand

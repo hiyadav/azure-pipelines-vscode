@@ -13,8 +13,12 @@ export class AzureDevOpsService {
     private static AzureReposUrl = '"dev.azure.com/"';
     private static VSOUrl = "visualstudio.com/";
 
+    private listOrganizationsPromise: Promise<string[]>;
+    private organizationNames: string[];
+
     public constructor(credentials: ServiceClientCredentials) {
         this.azureDevOpsClient = new AzureDevOpsClient(credentials);
+        this.listOrganizations();
     }
 
     public static isAzureReposUrl(remoteUrl: string): boolean {
@@ -43,13 +47,18 @@ export class AzureDevOpsService {
         return repositoryDetails.id;
     }
 
-    public async listOrganizations(): Promise<string[]> {
+    public async listOrganizations(refreshList: boolean = false): Promise<string[]> {
+        if (!refreshList) {
+            return this.organizationNames ?  this.organizationNames : await this.listOrganizationsPromise;
+        }
+
         let organizations = await this.azureDevOpsClient.listOrganizations();
         let organizationNames: string[] = [];
         for (let organization of organizations.value) {
             organizationNames.push(organization.accountName);
         }
 
+        this.organizationNames = organizationNames;
         return organizationNames;
     }
 

@@ -23,7 +23,7 @@
     "categories": [
         "Programming Languages",
         "Formatters",
-        "Other"
+        "Azure"
     ],
     "tags": [
         "azure-pipelines",
@@ -112,20 +112,20 @@
     "devDependencies": {
         "ajv": "^6.9.1",
         "assert": "1.4.1",
-        "tslint": "^5.8.0",
         "mocha": "^5.2.0",
+        "tslint": "^5.8.0",
         "ts-node": "^7.0.1",
         "typescript": "^3.3.1",
         "vscode": "^1.1.33",
         "vscode-azureextensiondev": "0.1.8",
-        "@types/q": "^1.5.1",
-        "@types/underscore": "1.8.9",
-        "@types/mustache": "^0.8.32",
         "@types/fs-extra": "^4.0.5",
         "@types/mocha": "^5.2.5",
+        "@types/mustache": "^0.8.32",
         "@types/node": "^10.0.0",
+        "@types/q": "^1.5.1",
         "@types/request": "^2.0.3",
-        "@types/request-promise": "4.1.41"
+        "@types/request-promise": "4.1.41",
+        "@types/underscore": "1.8.9"
     },
     "dependencies": {
         "azure-arm-resource": "7.3.0",

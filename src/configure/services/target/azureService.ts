@@ -1,4 +1,4 @@
-import { PipelineTargets } from "../../model/models";
+import { PipelineTargets, WebAppKind } from "../../model/models";
 import { ServiceClientCredentials } from "ms-rest";
 import { AzureResourceClient } from "../../clients/azureResourceClient";
 import { ResourceListResult, GenericResource } from "azure-arm-resource/lib/resource/models";
@@ -16,13 +16,13 @@ export class AzureService {
         switch (resourceType) {
             case PipelineTargets.WindowsWebApp:
                 filterForResourceType = "Microsoft.Web/sites";
-                filterForResourceKind = "app";
+                filterForResourceKind = WebAppKind.WindowsApp;
                 break;
             case PipelineTargets.None:
             default:
                 throw new Error("Invalid azure resource type.");
         }
-        
+
         let resourceList: ResourceListResult = await this.azureResourceClient.getResourceList(filterForResourceType);
 
         if (!!filterForResourceKind) {
@@ -50,5 +50,9 @@ export class AzureService {
 
     public async updateTargetResourcePipelineInfo() {
 
+    }
+
+    public async createSpnWithGraph(credentials) {
+        return this.azureResourceClient.createSpnWithGraph(credentials);
     }
 }
