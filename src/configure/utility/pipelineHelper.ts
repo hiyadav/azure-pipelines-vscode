@@ -42,8 +42,13 @@ async function analyzeRepo(repoPath: string): Promise<{ nodeUris: Array<vscode.U
 export function getPipelineTargetType(pipeline: string): PipelineTargets {
     switch (pipeline) {
         case NodeOnWindows:
+        case NodeJsWithGulp:
+        case NodeJsWithGrunt:
+        case NodeJsWithAngular:
+        case NodeJsWithWebpack:
             return PipelineTargets.WindowsWebApp;
-        default:
+        case NodeOnContainers:
+            default:
             return PipelineTargets.None;
     }
 }
@@ -53,8 +58,16 @@ export function getPipelineFilePath(pipelineType: string) {
 }
 
 const NodeOnWindows = "Node.js with npm";
+const NodeJsWithGulp = "Node.js with Gulp";
+const NodeJsWithGrunt = "Node.js with Grunt";
+const NodeJsWithAngular = "Node.js with Angular";
+const NodeJsWithWebpack = "Node.js with Webpack";
 const NodeOnContainers = "Node.js with containers";
 
 var fileMap: { [key: string]: string } = {};
 fileMap[NodeOnWindows] = path.join(path.dirname(path.dirname(__dirname)), "configure\\pipelines\\nodejs.yml");
-fileMap[NodeOnContainers] = path.join(path.dirname(path.dirname(__dirname)), "configure\\pipelines\\nodejs.yml");
+fileMap[NodeJsWithGulp] = path.join(path.dirname(path.dirname(__dirname)), "configure\\pipelines\\nodejsWithGulp.yml");
+fileMap[NodeJsWithGrunt] = path.join(path.dirname(path.dirname(__dirname)), "configure\\pipelines\\nodejsWithGrunt.yml");
+fileMap[NodeJsWithAngular] = path.join(path.dirname(path.dirname(__dirname)), "configure\\pipelines\\nodejsWithAngular.yml");
+fileMap[NodeJsWithWebpack] = path.join(path.dirname(path.dirname(__dirname)), "configure\\pipelines\\nodejsWithWebpack.yml");
+fileMap[NodeOnContainers] = path.join(path.dirname(path.dirname(__dirname)), "configure\\pipelines\\dockerWebApp.yml");

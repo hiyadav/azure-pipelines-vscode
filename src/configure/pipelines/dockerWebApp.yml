@@ -1,0 +1,25 @@
+trigger:
+- {{ sourceRepositoryDetails.branch }}
+
+pool:
+  vmImage: 'Ubuntu-16.04'
+
+steps:
+- task: Docker@0
+  displayName: 'Build an image'
+
+- task: Docker@0
+  displayName: 'Push an image'
+  inputs:
+    action: 'Push an image'
+
+- task: AzureRmWebAppDeployment@4
+  displayName: 'Azure App Service Deploy: {{ targetResource.name }}'
+  inputs:
+    azureSubscription: RMDev
+    appType: webAppContainer
+    WebAppName: '{{ targetResource.name }}'
+    DockerNamespace: myregistry.azurecr.io
+    DockerRepository: nginx
+    DockerImageTag: latest
+
