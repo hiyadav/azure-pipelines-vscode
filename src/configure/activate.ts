@@ -22,7 +22,7 @@ export async function activateConfigurePipeline(context: vscode.ExtensionContext
         await azureAccountExtension.activate();
     }
 
-    extensionVariables.azureAccountApi = azureAccountExtension;
+    extensionVariables.azureAccountExtensionApi = azureAccountExtension;
 
     // The command has been defined in the package.json file
     // Now provide the implementation of the command with registerCommand
@@ -33,13 +33,9 @@ export async function activateConfigurePipeline(context: vscode.ExtensionContext
     });
 
     // register ui extension variables is required to be done for createApiProvider to be called.
-    extensionVariables.uiExtensionVariables = {
-        context: context,
-        outputChannel: extensionVariables.outputChannel,
-        ui: new AzureUserInput(context.globalState),
-        reporter: extensionVariables.reporter
-    };
-    registerUIExtensionVariables(extensionVariables.uiExtensionVariables);
+    extensionVariables.context = context;
+    extensionVariables.ui = new AzureUserInput(context.globalState);
+    registerUIExtensionVariables(extensionVariables);
     return createApiProvider([<AzureExtensionApi>
         {
             configurePipelineApi: configurePipeline,

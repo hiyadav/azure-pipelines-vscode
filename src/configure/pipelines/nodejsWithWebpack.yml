@@ -1,5 +1,5 @@
-# Node.js Express Web App on Linux
-# Build a Node.js Express app and deploy it as a Linux web app.
+# Node.js with webpack
+# Build a Node.js project using the webpack CLI.
 # Add steps that analyze code, save build artifacts, deploy, and more:
 # https://docs.microsoft.com/azure/devops/pipelines/languages/javascript
 
@@ -9,6 +9,9 @@ trigger:
 pool:
   vmImage: 'Ubuntu-16.04'
 
+pool:
+  vmImage: 'ubuntu-latest'
+
 steps:
 - task: NodeTool@0
   inputs:
@@ -16,9 +19,10 @@ steps:
   displayName: 'Install Node.js'
 
 - script: |
+    npm install -g webpack webpack-cli --save-dev
     npm install
-    npm build
-  displayName: 'npm install and build'
+    npx webpack --config webpack.config.js
+  displayName: 'npm install, run webpack'
 
 - task: ArchiveFiles@2
   displayName: 'Archive files'

@@ -108,7 +108,7 @@ export class AzureDevOpsClient {
                         "scope": scope,
                         "serviceprincipalid": "",
                         "serviceprincipalkey": "",
-                        "tenantid": inputs.authDetails.tenantId
+                        "tenantid": inputs.azureSession.tenantId
                     },
                     "scheme": "ServicePrincipal"
                 },
@@ -120,8 +120,8 @@ export class AzureDevOpsClient {
                     "environment": "AzureCloud",
                     "scopeLevel": "Subscription",
                     "spnObjectId": "",
-                    "subscriptionId": inputs.subscriptionId,
-                    "subscriptionName": inputs.subscriptionId
+                    "subscriptionId": inputs.azureParameters.subscriptionId,
+                    "subscriptionName": inputs.azureParameters.subscriptionId
                 },
                 "description": "",
                 "groupScopeId": null,
@@ -188,7 +188,7 @@ export class AzureDevOpsClient {
                 ],
                 "dataProviderContext": {
                     "properties": {
-                        "connectionId": pipelineConfiguration.sourceProviderConnectionId, //GitHub endpoint id
+                        "connectionId": pipelineConfiguration.sourceRepositoryDetails.sourceProviderConnectionId, //GitHub endpoint id
                         "sourceProvider": pipelineConfiguration.sourceRepositoryDetails.sourceProvider,
                         "repositoryId": pipelineConfiguration.sourceRepositoryDetails.repositoryId,
                         "repositoryName": pipelineConfiguration.sourceRepositoryDetails.repositoryName,
