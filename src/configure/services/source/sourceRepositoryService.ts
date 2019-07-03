@@ -5,7 +5,7 @@ import * as git from "simple-git/promise";
 import * as vscode from 'vscode';
 
 import { AzureDevOpsService } from "../azureDevOpsService";
-import { GitRepositoryDetails, RepositoryProvider, WizardInputs } from '../../model/models';
+import { GitRepositoryParameters, RepositoryProvider, WizardInputs } from '../../model/models';
 import { GitHubProvider } from '../gitHubService';
 import { BranchSummary } from 'simple-git/typings/response';
 import Q = require('q');
@@ -13,8 +13,16 @@ import Q = require('q');
 export class SourceRepositoryService {
     private gitReference: git.SimpleGit;
 
-    public async getGitRepoDetails(repositoryPath: string): Promise<GitRepositoryDetails> {
-        this.gitReference = git(repositoryPath);
+    private constructor() {
+    }
+
+    public static GetSourceRepositoryService(repositoryPath: string): SourceRepositoryService {
+        var repoService = new SourceRepositoryService();
+        repoService.initialize(repositoryPath);
+        return repoService;
+    }
+
+    public async getGitRepoDetails(repositoryPath: string): Promise<GitRepositoryParameters> {
         let status = await this.gitReference.status();
         let branch = status.current;
         let commitId = await this.getLatestCommitId(branch);
@@ -34,7 +42,7 @@ export class SourceRepositoryService {
 
         if (remoteUrl) {
             if (AzureDevOpsService.isAzureReposUrl(remoteUrl)) {
-                return <GitRepositoryDetails>{
+                return <GitRepositoryParameters>{
                     repositoryProvider: RepositoryProvider.AzureRepos,
                     repositoryId: "",
                     repositoryName: AzureDevOpsService.getRepositoryNameFromRemoteUrl(remoteUrl),
@@ -46,7 +54,7 @@ export class SourceRepositoryService {
             }
             else if (GitHubProvider.isGitHubUrl(remoteUrl)) {
                 let repoId = GitHubProvider.getRepositoryIdFromUrl(remoteUrl);
-                return <GitRepositoryDetails>{
+                return <GitRepositoryParameters>{
                     repositoryProvider: RepositoryProvider.Github,
                     repositoryId: repoId,
                     repositoryName: repoId,
@@ -164,5 +172,9 @@ export class SourceRepositoryService {
         }
 
         return "";
+    }
+
+    private  initialize(repositoryPath: string): void {
+        this.gitReference = git(repositoryPath);
     }
 }

@@ -1,9 +1,8 @@
 import { ResourceListResult, GenericResource } from 'azure-arm-resource/lib/resource/models';
-import * as ResourceManagementClient from 'azure-arm-resource/lib/resource/resourceManagementClient';
+import { ResourceManagementClient } from 'azure-arm-resource/lib/resource/resourceManagementClient';
 import { ServiceClientCredentials } from 'ms-rest';
 
 export class AzureResourceClient {
-    private static getResourceApiVersion = "2019-05-01";
 
     private azureRmClient: ResourceManagementClient;
 
@@ -26,8 +25,8 @@ export class AzureResourceClient {
         return resourceListResult;
     }
 
-    public async getResource(resoruceId: string): Promise<GenericResource> {
-        let resource: GenericResource = await this.azureRmClient.resources.getById(resoruceId, AzureResourceClient.getResourceApiVersion);
+    public async getResource(resourceId: string, apiVersion: string): Promise<GenericResource> {
+        let resource: GenericResource = await this.azureRmClient.resources.getById(resourceId, apiVersion);
         return resource;
     }
 }

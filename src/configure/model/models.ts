@@ -4,11 +4,7 @@ import { AzureEnvironment } from 'ms-rest-azure';
 import { OutputChannel, ExtensionContext } from 'vscode';
 import { UIExtensionVariables, IAzureUserInput } from 'vscode-azureextensionui';
 import TelemetryReporter from 'vscode-extension-telemetry';
-
 import { SubscriptionModels } from 'azure-arm-resource';
-import { AzureDevOpsService } from '../services/azureDevOpsService';
-import { SourceRepositoryService } from '../services/source/sourceRepositoryService';
-import { AzureService } from '../services/target/azureService';
 
 class ExtensionVariables implements UIExtensionVariables {
     public azureAccountExtensionApi: AzureAccountExtensionExports;
@@ -17,11 +13,6 @@ class ExtensionVariables implements UIExtensionVariables {
     public outputChannel: OutputChannel;
     public reporter: TelemetryReporter;
     public ui: IAzureUserInput;
-
-    public azureDevOpsService: AzureDevOpsService;
-    public azureService: AzureService;
-    public inputs: WizardInputs;
-    public sourceRepositoryService: SourceRepositoryService;
 }
 
 let extensionVariables = new ExtensionVariables();
@@ -34,12 +25,12 @@ export interface  AzureAccountExtensionExports {
 }
 
 export class WizardInputs {
-    azureSession: AzureSession = new AzureSession();
-    azureParameters: AzureParameters = new AzureParameters();
     organizationName: string;
     projectName: string;
+    sourceRepository: GitRepositoryParameters;
+    targetResource: AzureParameters = new AzureParameters();
     pipelineParameters: PipelineParameters = new PipelineParameters();
-    sourceRepositoryDetails: GitRepositoryDetails;
+    azureSession: AzureSession = new AzureSession();
 }
 
 export class AzureSession {
@@ -52,7 +43,8 @@ export class AzureSession {
 export class AzureParameters {
     subscriptionId: string;
     targetResource: GenericResource;
-    azureServiceConnectionId: string;
+    //azureSession: AzureSession;
+    serviceConnectionId: string;
 }
 
 export class PipelineParameters {
@@ -60,7 +52,7 @@ export class PipelineParameters {
     workingDirectory: string;
 }
 
-export interface GitRepositoryDetails {
+export interface GitRepositoryParameters {
     repositoryProvider: RepositoryProvider;
     repositoryName: string;
     repositoryId: string;

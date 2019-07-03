@@ -203,3 +203,11 @@ export class AzureDevOpsService {
         });
     }
 }
+
+export interface AzureDevOpsService2 {
+    listOrganizations: (refreshList: boolean) => Promise<string[]>;
+
+    listProjects: (organizationName: string) => Promise<string[]>;
+
+    createServiceEndpoint: () => Promise<
+}

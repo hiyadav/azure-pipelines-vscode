@@ -120,8 +120,8 @@ export class AzureDevOpsClient {
                     "environment": "AzureCloud",
                     "scopeLevel": "Subscription",
                     "spnObjectId": "",
-                    "subscriptionId": inputs.azureParameters.subscriptionId,
-                    "subscriptionName": inputs.azureParameters.subscriptionId
+                    "subscriptionId": inputs.targetResource.subscriptionId,
+                    "subscriptionName": inputs.targetResource.subscriptionId
                 },
                 "description": "",
                 "groupScopeId": null,
@@ -188,15 +188,15 @@ export class AzureDevOpsClient {
                 ],
                 "dataProviderContext": {
                     "properties": {
-                        "connectionId": pipelineConfiguration.sourceRepositoryDetails.serviceConnectionId, //GitHub endpoint id
-                        "sourceProvider": pipelineConfiguration.sourceRepositoryDetails.repositoryProvider,
-                        "repositoryId": pipelineConfiguration.sourceRepositoryDetails.repositoryId,
-                        "repositoryName": pipelineConfiguration.sourceRepositoryDetails.repositoryName,
-                        "branch": pipelineConfiguration.sourceRepositoryDetails.branch,
-                        "sourceBranch": pipelineConfiguration.sourceRepositoryDetails.branch,
+                        "connectionId": pipelineConfiguration.sourceRepository.serviceConnectionId, //GitHub endpoint id
+                        "sourceProvider": pipelineConfiguration.sourceRepository.repositoryProvider,
+                        "repositoryId": pipelineConfiguration.sourceRepository.repositoryId,
+                        "repositoryName": pipelineConfiguration.sourceRepository.repositoryName,
+                        "branch": pipelineConfiguration.sourceRepository.branch,
+                        "sourceBranch": pipelineConfiguration.sourceRepository.branch,
                         "path": "./azure-pipelines.yml",
                         "queue": "Hosted Ubuntu 1604",
-                        "commitId": pipelineConfiguration.sourceRepositoryDetails.commitId,
+                        "commitId": pipelineConfiguration.sourceRepository.commitId,
                         "commitDescriptorName": "Set up CI/CD with Azure Pipelines",
                         "sourcePage": {
                             "routeValues": {
@@ -221,5 +221,48 @@ export class AzureDevOpsClient {
             deserializationMapper: null,
             serializationMapper: null
         });
+    }
+}
+
+export class AzureDevOpsClient2 {
+    private serviceClient: ServiceClient;
+
+    private static accoutMap: any;
+
+    constructor(credentials: ServiceClientCredentials) {
+        this.serviceClient = new ServiceClient(credentials);
+    }
+
+    public getAllOrgs(): Array<string> {
+        return [];
+    }
+
+    private async static initAccoutList() {
+        if (!AzureDevOpsClient2.accoutMap) {
+
+        }
+    }
+
+    protected async getBaseOrgUrl(orgName: string, serviceType: string) : string {
+        return "";
+    }
+}
+
+export class ServiceConnectionClient extends AzureDevOpsClient2 {
+    private orgName: string;
+    constructor(orgUrl: string, projectName: string, credentials: ServiceClientCredentials) {
+        super(credentials);
+        this.orgName = orgName;
+    }
+
+    public createGitHubConnection() : {
+        var url =  this.orgUrl + "_apis/Contribution/HierarchyQuery";
+    }
+
+}
+
+export class DevOpsServiceFactory {
+    public async getServiceConnectionClient(baseOrgUrl: string, projectName) : {
+
     }
 }
