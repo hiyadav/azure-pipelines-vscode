@@ -5,7 +5,7 @@ import { SubscriptionModels } from 'azure-arm-resource';
 import { AzureTreeItem } from 'vscode-azureextensionui';
 import { QuickPickItem } from 'vscode';
 
-import { SourceOptions, SourceProviderType, extensionVariables, WizardInputs, WebAppKind, PipelineTemplate } from './model/models';
+import { SourceOptions, RepositoryProvider, extensionVariables, WizardInputs, WebAppKind, PipelineTemplate } from './model/models';
 import { AzureDevOpsService } from "./services/azureDevOpsService";
 import { SourceRepositoryService } from './services/source/sourceRepositoryService';
 import { AzureService } from './services/target/azureService';
@@ -14,7 +14,7 @@ import { exit } from 'process';
 
 export async function configurePipeline(node: any) {
     try {
-        if (!(await extensionVariables.azureAccountExtensionApi.exports.waitForLogin())) {
+        if (!(await extensionVariables.azureAccountExtensionApi.waitForLogin())) {
             throw new Error("Kindly log-in to Azure Account extension before going forward.");
         }
 
@@ -38,9 +38,7 @@ export async function configurePipeline(node: any) {
 
 function initializeSetup() {
     extensionVariables.inputs = new WizardInputs();
-    extensionVariables.inputs.azureSession.credentials = extensionVariables.azureAccountExtensionApi.exports.sessions[0].credentials;
-    extensionVariables.inputs.azureSession.tenantId = extensionVariables.azureAccountExtensionApi.exports.sessions[0].tenantId;
-
+    extensionVariables.inputs.azureSession = extensionVariables.azureAccountExtensionApi.sessions[0];
     extensionVariables.azureDevOpsService = new AzureDevOpsService(extensionVariables.inputs.azureSession.credentials);
     extensionVariables.sourceRepositoryService = new SourceRepositoryService();
 }
@@ -52,7 +50,7 @@ async function getAllRequiredInputs(node: any) {
     await getAzureDevOpsDetails();
     await getSelectedPipeline();
 
-    if (extensionVariables.inputs.sourceRepositoryDetails.sourceProvider === SourceProviderType.Github) {
+    if (extensionVariables.inputs.sourceRepositoryDetails.repositoryProvider === RepositoryProvider.Github) {
         await getGitubConnectionService();
     }
 
@@ -140,7 +138,7 @@ async function getSourceRepositoryDetails(): Promise<void> {
 async function getGitDetailsFromRepository(workspacePath: string): Promise<void> {
     extensionVariables.inputs.sourceRepositoryDetails = await extensionVariables.sourceRepositoryService.getGitRepoDetails(workspacePath);
 
-    if (extensionVariables.inputs.sourceRepositoryDetails.sourceProvider === SourceProviderType.AzureRepos) {
+    if (extensionVariables.inputs.sourceRepositoryDetails.repositoryProvider === RepositoryProvider.AzureRepos) {
         extensionVariables.azureDevOpsService.getRepositoryId(extensionVariables.inputs.sourceRepositoryDetails.repositoryName, extensionVariables.inputs.sourceRepositoryDetails.remoteUrl)
             .then((repositoryId) => {
                 extensionVariables.inputs.sourceRepositoryDetails.repositoryId = repositoryId;
@@ -190,7 +188,7 @@ async function getSelectedPipeline(): Promise<void> {
 }
 
 async function getAzureResourceDetails(): Promise<void> {
-    let subscriptions: [{ session: any, subscription: SubscriptionModels.Subscription }] = extensionVariables.azureAccountExtensionApi.exports.subscriptions;
+    let subscriptions = extensionVariables.azureAccountExtensionApi.subscriptions;
     let subscriptionList = subscriptions.map((subscriptionObject) => {
         return <QuickPickItem>{
             label: <string>subscriptionObject.subscription.displayName
@@ -202,7 +200,7 @@ async function getAzureResourceDetails(): Promise<void> {
     }).subscription.subscriptionId;
 
     extensionVariables.azureService = new AzureService(extensionVariables.inputs.azureSession.credentials, extensionVariables.inputs.azureParameters.subscriptionId);
-    let resourceListResult: ResourceListResult = await extensionVariables.azureService.listResourcesOfType(extensionVariables.inputs.pipelineParameters.pipelineTemplate.target);
+    let resourceListResult: ResourceListResult = await extensionVariables.azureService.listResourcesOfType(extensionVariables.inputs.pipelineParameters.pipelineTemplate.targetType);
     let resourceDisplayList = resourceListResult.map((resource) => {
         return <vscode.QuickPickItem>{
             label: resource.name
@@ -224,8 +222,8 @@ async function getGitubConnectionService(): Promise<void> {
         },
         () => {
             return extensionVariables.azureDevOpsService.createGitHubServiceConnection(githubPat, extensionVariables.inputs.sourceRepositoryDetails.repositoryName)
-                .then((endpointId) => {
-                    extensionVariables.inputs.sourceRepositoryDetails.sourceProviderConnectionId = endpointId;
+                .then((serviceConnectionId) => {
+                    extensionVariables.inputs.sourceRepositoryDetails.serviceConnectionId = serviceConnectionId;
                 });
         });
 }

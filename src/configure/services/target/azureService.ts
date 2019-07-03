@@ -1,4 +1,4 @@
-import { PipelineTargets, WebAppKind } from "../../model/models";
+import { TargetResourceType, WebAppKind } from "../../model/models";
 import { ServiceClientCredentials } from "ms-rest";
 import { AzureResourceClient } from "../../clients/azureResourceClient";
 import { ResourceListResult, GenericResource } from "azure-arm-resource/lib/resource/models";
@@ -10,15 +10,15 @@ export class AzureService {
         this.azureResourceClient = new AzureResourceClient(credentials, subscriptionId);
     }
 
-    public async listResourcesOfType(resourceType: PipelineTargets): Promise<ResourceListResult> {
+    public async listResourcesOfType(resourceType: TargetResourceType): Promise<ResourceListResult> {
         let filterForResourceType: string = null;
         let filterForResourceKind: string = null;
         switch (resourceType) {
-            case PipelineTargets.WindowsWebApp:
+            case TargetResourceType.WindowsWebApp:
                 filterForResourceType = "Microsoft.Web/sites";
                 filterForResourceKind = WebAppKind.WindowsApp;
                 break;
-            case PipelineTargets.None:
+            case TargetResourceType.None:
             default:
                 throw new Error("Invalid azure resource type.");
         }

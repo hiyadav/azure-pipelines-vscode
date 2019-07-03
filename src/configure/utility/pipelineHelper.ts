@@ -2,7 +2,7 @@ import * as fs from "fs";
 import * as path from "path";
 import Q = require("q");
 
-import { PipelineTargets, PipelineTemplate } from "../model/models";
+import { TargetResourceType, PipelineTemplate } from "../model/models";
 
 export async function analyzeRepoAndListAppropriatePipeline(repoPath: string): Promise<PipelineTemplate[]> {
     // TO-DO: To populate the possible pipelines on the basis of azure target resource.
@@ -53,31 +53,31 @@ const nodeTemplates: Array<PipelineTemplate> = [
         label: "Node.js with npm",
         path: path.join(path.dirname(path.dirname(__dirname)), "configure\\pipelines\\nodejs.yml"),
         language: "node",
-        target: PipelineTargets.WindowsWebApp
+        targetType: TargetResourceType.WindowsWebApp
     },
     {
         label: "Node.js with Gulp",
         path: path.join(path.dirname(path.dirname(__dirname)), "configure\\pipelines\\nodejsWithGulp.yml"),
         language: "node",
-        target: PipelineTargets.WindowsWebApp
+        targetType: TargetResourceType.WindowsWebApp
     },
     {
         label: "Node.js with Grunt",
         path: path.join(path.dirname(path.dirname(__dirname)), "configure\\pipelines\\nodejsWithGrunt.yml"),
         language: "node",
-        target: PipelineTargets.WindowsWebApp
+        targetType: TargetResourceType.WindowsWebApp
     },
     {
         label: "Node.js with Angular",
         path: path.join(path.dirname(path.dirname(__dirname)), "configure\\pipelines\\nodejsWithAngular.yml"),
         language: "node",
-        target: PipelineTargets.WindowsWebApp
+        targetType: TargetResourceType.WindowsWebApp
     },
     {
         label: "Node.js with Webpack",
         path: path.join(path.dirname(path.dirname(__dirname)), "configure\\pipelines\\nodejsWithWebpack.yml"),
         language: "node",
-        target: PipelineTargets.WindowsWebApp
+        targetType: TargetResourceType.WindowsWebApp
     }
 ];
 

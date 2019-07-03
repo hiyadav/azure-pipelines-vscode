@@ -188,8 +188,8 @@ export class AzureDevOpsClient {
                 ],
                 "dataProviderContext": {
                     "properties": {
-                        "connectionId": pipelineConfiguration.sourceRepositoryDetails.sourceProviderConnectionId, //GitHub endpoint id
-                        "sourceProvider": pipelineConfiguration.sourceRepositoryDetails.sourceProvider,
+                        "connectionId": pipelineConfiguration.sourceRepositoryDetails.serviceConnectionId, //GitHub endpoint id
+                        "sourceProvider": pipelineConfiguration.sourceRepositoryDetails.repositoryProvider,
                         "repositoryId": pipelineConfiguration.sourceRepositoryDetails.repositoryId,
                         "repositoryName": pipelineConfiguration.sourceRepositoryDetails.repositoryName,
                         "branch": pipelineConfiguration.sourceRepositoryDetails.branch,

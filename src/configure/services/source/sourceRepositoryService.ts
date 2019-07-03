@@ -5,7 +5,7 @@ import * as git from "simple-git/promise";
 import * as vscode from 'vscode';
 
 import { AzureDevOpsService } from "../azureDevOpsService";
-import { GitRepositoryDetails, SourceProviderType, WizardInputs } from '../../model/models';
+import { GitRepositoryDetails, RepositoryProvider, WizardInputs } from '../../model/models';
 import { GitHubProvider } from '../gitHubService';
 import { BranchSummary } from 'simple-git/typings/response';
 import Q = require('q');
@@ -35,7 +35,7 @@ export class SourceRepositoryService {
         if (remoteUrl) {
             if (AzureDevOpsService.isAzureReposUrl(remoteUrl)) {
                 return <GitRepositoryDetails>{
-                    sourceProvider: SourceProviderType.AzureRepos,
+                    repositoryProvider: RepositoryProvider.AzureRepos,
                     repositoryId: "",
                     repositoryName: AzureDevOpsService.getRepositoryNameFromRemoteUrl(remoteUrl),
                     remoteUrl: remoteUrl,
@@ -47,7 +47,7 @@ export class SourceRepositoryService {
             else if (GitHubProvider.isGitHubUrl(remoteUrl)) {
                 let repoId = GitHubProvider.getRepositoryIdFromUrl(remoteUrl);
                 return <GitRepositoryDetails>{
-                    sourceProvider: SourceProviderType.Github,
+                    repositoryProvider: RepositoryProvider.Github,
                     repositoryId: repoId,
                     repositoryName: repoId,
                     remoteUrl: remoteUrl,

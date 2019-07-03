@@ -5,12 +5,13 @@ import { OutputChannel, ExtensionContext } from 'vscode';
 import { UIExtensionVariables, IAzureUserInput } from 'vscode-azureextensionui';
 import TelemetryReporter from 'vscode-extension-telemetry';
 
+import { SubscriptionModels } from 'azure-arm-resource';
 import { AzureDevOpsService } from '../services/azureDevOpsService';
 import { SourceRepositoryService } from '../services/source/sourceRepositoryService';
 import { AzureService } from '../services/target/azureService';
 
 class ExtensionVariables implements UIExtensionVariables {
-    public azureAccountExtensionApi: any;
+    public azureAccountExtensionApi: AzureAccountExtensionExports;
 
     public context: ExtensionContext;
     public outputChannel: OutputChannel;
@@ -25,6 +26,12 @@ class ExtensionVariables implements UIExtensionVariables {
 
 let extensionVariables = new ExtensionVariables();
 export { extensionVariables };
+
+export interface  AzureAccountExtensionExports {
+    sessions: AzureSession[];
+    subscriptions: { session: AzureSession, subscription: SubscriptionModels.Subscription }[];
+    waitForLogin: () => Promise<boolean>;
+}
 
 export class WizardInputs {
     azureSession: AzureSession = new AzureSession();
@@ -54,26 +61,21 @@ export class PipelineParameters {
 }
 
 export interface GitRepositoryDetails {
-    sourceProvider: SourceProviderType;
-    localPath?: string;
-    repositoryId: string;
+    repositoryProvider: RepositoryProvider;
     repositoryName: string;
+    repositoryId: string;
     remoteUrl: string;
     branch: string;
     commitId: string;
-    sourceProviderConnectionId?: string;
+    localPath?: string;
+    serviceConnectionId?: string; // Id of the service connection in Azure DevOps
 }
 
 export interface PipelineTemplate {
-    label: string;
     path: string;
+    label: string;
     language: string;
-    target: PipelineTargets;
-}
-
-export enum SourceProviderType {
-    Github = 'github',
-    AzureRepos = 'tfsgit'
+    targetType: TargetResourceType;
 }
 
 export enum SourceOptions {
@@ -82,12 +84,17 @@ export enum SourceOptions {
     GithubRepository = "Github repository"
 }
 
-export enum PipelineTargets {
+export enum RepositoryProvider {
+    Github = 'github',
+    AzureRepos = 'tfsgit'
+}
+
+export enum TargetResourceType {
     None = 'none',
     WindowsWebApp = 'windowsWebApp'
 }
 
-export enum ConnectionServiceType {
+export enum ServiceConnectionType {
     GitHub = "github",
     AzureRM = "azurerm"
 }
