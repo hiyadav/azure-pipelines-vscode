@@ -5,11 +5,13 @@ import { AzureTreeItem } from 'vscode-azureextensionui';
 import { QuickPickItem } from 'vscode';
 
 import { SourceOptions, RepositoryProvider, extensionVariables, WizardInputs, WebAppKind, PipelineTemplate } from './model/models';
-import { AzureDevOpsService } from "./services/azureDevOpsService";
+import { AzureDevOpsService } from "./services/devOps/azureDevOpsService";
 import { SourceRepositoryService } from './services/source/sourceRepositoryService';
-import { AzureService } from './clients/azure/appServiceClient';
 import { analyzeRepoAndListAppropriatePipeline } from './utility/pipelineHelper';
 import { exit } from 'process';
+import { ServiceConnectionHelper } from './services/devOps/serviceConnection';
+import { AzureDevOpsFactory } from './azureDevOpsFactory';
+import { AppServiceClient } from './clients/azure/appServiceClient';
 
 export async function configurePipeline(node: any) {
     try {
@@ -30,12 +32,15 @@ class PipelineConfigurer {
     private inputs: WizardInputs;
     private sourceRepositoryService: SourceRepositoryService;
     private azureDevOpsService: AzureDevOpsService;
-    private azureService: AzureService;
+    private connectionService: ServiceConnectionHelper;
+    private azureDevOpsFactory: AzureDevOpsFactory;
+    private appServiceClient: AppServiceClient;
     private workspacePath: string;
 
     public constructor() {
         this.inputs = new WizardInputs();
-        this.azureDevOpsService = new AzureDevOpsService(extensionVariables.azureAccountExtensionApi.sessions[0].credentials);
+        this.azureDevOpsFactory = new AzureDevOpsFactory(extensionVariables.azureAccountExtensionApi.sessions[0].credentials);
+        this.azureDevOpsService = this.azureDevOpsFactory.getAzureDevOpsService();
     }
 
     public async configure(node: any) {
@@ -54,20 +59,20 @@ class PipelineConfigurer {
         await this.getSourceRepositoryDetails();
         await this.getAzureDevOpsDetails();
         await this.getSelectedPipeline();
-    
+
         if (this.inputs.sourceRepository.repositoryProvider === RepositoryProvider.Github) {
             await this.getGitubConnectionService();
         }
-    
+
         if (!this.inputs.targetResource.targetResource) {
             await this.getAzureResourceDetails();
         }
-    
+
         await this.createAzureRMServiceConnection();
         await this.checkInPipelineFileToRepository();
     }
 
-    
+
     private async analyzeNode(node: any): Promise<void> {
         if (node instanceof AzureTreeItem) {
             await this.extractAzureResourceFromNode(node);
@@ -121,7 +126,10 @@ class PipelineConfigurer {
         this.inputs.sourceRepository = await this.sourceRepositoryService.getGitRepoDetails(workspacePath);
 
         if (this.inputs.sourceRepository.repositoryProvider === RepositoryProvider.AzureRepos) {
-            this.azureDevOpsService.getRepositoryId(this.inputs.sourceRepository.repositoryName, this.inputs.sourceRepository.remoteUrl)
+            let orgAndProjectName = AzureDevOpsService.getOrganizationAndProjectNameFromRepositoryUrl(this.inputs.sourceRepository.remoteUrl);
+            this.inputs.organizationName = orgAndProjectName.orgnizationName;
+            this.inputs.projectName = orgAndProjectName.projectName;
+            this.azureDevOpsService.getRepositoryId(this.inputs.organizationName, this.inputs.projectName, this.inputs.sourceRepository.repositoryName)
                 .then((repositoryId) => {
                     this.inputs.sourceRepository.repositoryId = repositoryId;
                 });
@@ -130,9 +138,9 @@ class PipelineConfigurer {
 
     private async extractAzureResourceFromNode(node: any): Promise<void> {
         this.inputs.targetResource.subscriptionId = node.root.subscriptionId;
-        this.azureService = new AzureService(this.inputs.azureSession.credentials, this.inputs.targetResource.subscriptionId);
+        this.appServiceClient = new AppServiceClient(this.inputs.azureSession.credentials, this.inputs.targetResource.subscriptionId);
 
-        let azureResource: GenericResource = await this.azureService.getResource((<AzureTreeItem>node).fullId);
+        let azureResource: GenericResource = await this.appServiceClient.getAppServiceResource((<AzureTreeItem>node).fullId);
 
         switch (azureResource.type) {
             case "Microsoft.Web/sites":
@@ -153,24 +161,16 @@ class PipelineConfigurer {
     }
 
     private async getAzureDevOpsDetails(): Promise<void> {
-        if (!this.azureDevOpsService.getOrganizationName()) {
+        if (!this.inputs.organizationName) {
             let organizationList: string[] = await this.azureDevOpsService.listOrganizations();
             let selectedOrganization = await extensionVariables.ui.showQuickPick(organizationList.map((org) => { return { label: org }; }), { placeHolder: "Select Azure DevOps Organization" });
-            this.azureDevOpsService.setOrganizationName(selectedOrganization.label);
             this.inputs.organizationName = selectedOrganization.label;
         }
-        else {
-            this.inputs.organizationName = this.azureDevOpsService.getOrganizationName();
-        }
 
-        if (!this.azureDevOpsService.getProjectName()) {
-            let projectList = await this.azureDevOpsService.listProjects();
+        if (!this.inputs.projectName) {
+            let projectList = await this.azureDevOpsService.listProjects(this.inputs.organizationName);
             let selectedProject = await extensionVariables.ui.showQuickPick(projectList.map((project) => { return { label: project }; }), { placeHolder: "Select Azure DevOps project" });
-            this.azureDevOpsService.setProjectName(selectedProject.label);
             this.inputs.projectName = selectedProject.label;
-        }
-        else {
-            this.inputs.projectName = this.azureDevOpsService.getProjectName();
         }
     }
 
@@ -204,8 +204,8 @@ class PipelineConfigurer {
             return subscriptionObject.subscription.displayName === selectedSubscription.label;
         }).subscription.subscriptionId;
 
-        this.azureService = new AzureService(extensionVariables.azureAccountExtensionApi.sessions[0].credentials, this.inputs.targetResource.subscriptionId);
-        let resourceListResult: ResourceListResult = await this.azureService.listResourcesOfType(this.inputs.pipelineParameters.pipelineTemplate.targetType);
+        this.appServiceClient = new AppServiceClient(extensionVariables.azureAccountExtensionApi.sessions[0].credentials, this.inputs.targetResource.subscriptionId);
+        let resourceListResult: ResourceListResult = await this.appServiceClient.GetAppServices(WebAppKind.WindowsApp);
         let resourceDisplayList = resourceListResult.map((resource) => {
             return <vscode.QuickPickItem>{
                 label: resource.name
@@ -219,6 +219,10 @@ class PipelineConfigurer {
     }
 
     private async getGitubConnectionService(): Promise<void> {
+        if (!this.connectionService) {
+            this.connectionService = this.azureDevOpsFactory.getServiceConnectionHelper(this.inputs.organizationName, this.inputs.projectName);
+        }
+
         let githubPat = await extensionVariables.ui.showInputBox({ placeHolder: "Enter GitHub PAT token" });
         await vscode.window.withProgress(
             {
@@ -226,7 +230,7 @@ class PipelineConfigurer {
                 title: "Creating GitHub service connection"
             },
             () => {
-                return this.azureDevOpsService.createGitHubServiceConnection(githubPat, this.inputs.sourceRepository.repositoryName)
+                return this.connectionService.createGitHubServiceConnection(githubPat, this.inputs.sourceRepository.repositoryName)
                     .then((serviceConnectionId) => {
                         this.inputs.sourceRepository.serviceConnectionId = serviceConnectionId;
                     });
@@ -234,6 +238,9 @@ class PipelineConfigurer {
     }
 
     private async createAzureRMServiceConnection(): Promise<void> {
+        if (!this.connectionService) {
+            this.connectionService = this.azureDevOpsFactory.getServiceConnectionHelper(this.inputs.organizationName, this.inputs.projectName);
+        }
         // TODO: show notification while setup is being done.
         // ?? should SPN created be scoped to resource group of target azure resource.
         this.inputs.targetResource.serviceConnectionId = await vscode.window.withProgress(
@@ -242,7 +249,7 @@ class PipelineConfigurer {
                 title: `Connecting azure pipelines with your subscription: ${this.inputs.targetResource.subscriptionId}`
             },
             () => {
-                return this.azureDevOpsService.createAzureServiceConnection(this.inputs.targetResource.targetResource.name, this.inputs);
+                return this.connectionService.createAzureServiceConnection(this.inputs.targetResource.targetResource.name, this.inputs.azureSession.tenantId, this.inputs.targetResource.subscriptionId);
             });
     }
 

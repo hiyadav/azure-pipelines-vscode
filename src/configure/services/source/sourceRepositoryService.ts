@@ -4,7 +4,7 @@ import * as path from 'path';
 import * as git from "simple-git/promise";
 import * as vscode from 'vscode';
 
-import { AzureDevOpsService } from "../azureDevOpsService";
+import { AzureDevOpsService } from "../devOps/azureDevOpsService";
 import { GitRepositoryParameters, RepositoryProvider, WizardInputs } from '../../model/models';
 import { GitHubProvider } from '../gitHubService';
 import { BranchSummary } from 'simple-git/typings/response';

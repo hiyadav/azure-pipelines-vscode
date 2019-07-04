@@ -33,6 +33,13 @@ export class WizardInputs {
     azureSession: AzureSession = new AzureSession();
 }
 
+export class Organization {
+    accountId: string;
+    accountName: string;
+    accountUri: string;
+    properties: {};
+}
+
 export class AzureSession {
     environment: AzureEnvironment;
     userId: string;
