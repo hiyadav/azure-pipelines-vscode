@@ -51,4 +51,8 @@ export class AzureService {
     public async updateTargetResourcePipelineInfo() {
 
     }
+
+    public async createSpnWithGraph(credentials) {
+        return this.azureResourceClient.createSpnWithGraph(credentials);
+    }
 }
