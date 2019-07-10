@@ -39,7 +39,8 @@ class PipelineConfigurer {
 
     public constructor() {
         this.inputs = new WizardInputs();
-        this.azureDevOpsFactory = new AzureDevOpsFactory(extensionVariables.azureAccountExtensionApi.sessions[0].credentials);
+        this.inputs.azureSession = extensionVariables.azureAccountExtensionApi.sessions[0];
+        this.azureDevOpsFactory = new AzureDevOpsFactory(this.inputs.azureSession.credentials);
         this.azureDevOpsService = this.azureDevOpsFactory.getAzureDevOpsService();
     }
 
@@ -184,12 +185,9 @@ class PipelineConfigurer {
             placeHolder: "Select Azure pipelines template..."
         });
 
-        this.inputs.pipelineParameters = {
-            pipelineTemplate: appropriatePipelines.find((pipeline) => {
-                return pipeline.label === selectedOption.label;
-            }),
-            workingDirectory: ""
-        };
+        this.inputs.pipelineParameters.pipelineTemplate = appropriatePipelines.find((pipeline) => {
+            return pipeline.label === selectedOption.label;
+        });
     }
 
     private async getAzureResourceDetails(): Promise<void> {
@@ -254,17 +252,17 @@ class PipelineConfigurer {
     }
 
     private async checkInPipelineFileToRepository() {
-        let ymlFilePath: string = await this.sourceRepositoryService.addYmlFileToRepo(
+        this.inputs.pipelineParameters.checkedInPipelineFileRelativePath = await this.sourceRepositoryService.addYmlFileToRepo(
             this.inputs.pipelineParameters.pipelineTemplate.path,
             this.inputs.sourceRepository.localPath, this.inputs);
 
-        await vscode.window.showTextDocument(vscode.Uri.file(ymlFilePath));
+        await vscode.window.showTextDocument(vscode.Uri.file(this.inputs.pipelineParameters.checkedInPipelineFileRelativePath));
         await vscode.window.showInformationMessage("Modify and commit yaml pipeline file to deploy.", "Commit & Push", "Discard Pipeline")
             .then((commitOrDiscard: string) => {
                 if (commitOrDiscard.toLowerCase() === "commit & push") {
                     return vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: "Configuring Azure DevOps Pipeline and proceeding to deployment..." }, async (progress) => {
                         // handle when the branch is not upto date with remote branch and push fails
-                        let commitDetails = await this.sourceRepositoryService.commitAndPushPipelineFile(ymlFilePath);
+                        let commitDetails = await this.sourceRepositoryService.commitAndPushPipelineFile(this.inputs.pipelineParameters.checkedInPipelineFileRelativePath);
                         this.inputs.sourceRepository.branch = commitDetails.branch;
                         this.inputs.sourceRepository.commitId = commitDetails.commitId;
                     });

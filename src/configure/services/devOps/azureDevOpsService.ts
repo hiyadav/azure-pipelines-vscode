@@ -1,6 +1,4 @@
 
-import { ServiceClientCredentials } from 'ms-rest';
-
 import { WizardInputs, Organization } from '../../model/models';
 import { AzureDevOpsClient } from '../../clients/devOps/azureDevOpsClient';
 
@@ -9,8 +7,8 @@ export class AzureDevOpsService {
     private static AzureReposUrl = '"dev.azure.com/"';
     private static VSOUrl = "visualstudio.com/";
 
-    public constructor(credentials: ServiceClientCredentials) {
-        this.azureDevOpsClient = new AzureDevOpsClient(credentials);
+    public constructor(azureDevOpsClient: AzureDevOpsClient) {
+        this.azureDevOpsClient = azureDevOpsClient;
     }
 
     public static isAzureReposUrl(remoteUrl: string): boolean {

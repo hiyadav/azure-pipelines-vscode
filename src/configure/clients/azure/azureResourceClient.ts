@@ -1,5 +1,5 @@
 import { ResourceListResult, GenericResource } from 'azure-arm-resource/lib/resource/models';
-import { ResourceManagementClient } from 'azure-arm-resource/lib/resource/resourceManagementClient';
+import * as ResourceManagementClient from 'azure-arm-resource/lib/resource/resourceManagementClient';
 import { ServiceClientCredentials } from 'ms-rest';
 
 export class AzureResourceClient {

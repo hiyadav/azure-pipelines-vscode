@@ -1,4 +1,5 @@
 import Mustache = require('mustache');
+import * as utils from 'util';
 
 import { ServiceClientCredentials, ServiceClient, UrlBasedRequestPrepareOptions } from 'ms-rest';
 
@@ -8,13 +9,17 @@ import { Organization, WizardInputs } from '../../model/models';
 // either throw here or analyze in the calling service layer for any errors;
 // for the second declare a model
 export class AzureDevOpsClient {
-    protected serviceClient: ServiceClient;
+    private serviceClient: ServiceClient;
     private organizationMap: [Organization];
     private listOrgPromise: Promise<Organization[]>;
 
     constructor(credentials: ServiceClientCredentials) {
         this.serviceClient = new ServiceClient(credentials);
         this.listOrgPromise = this.listOrganizations();
+    }
+
+    public async sendRequest(urlBasedRequestPrepareOptions: UrlBasedRequestPrepareOptions): Promise<any> {
+        return this.serviceClient.sendRequest(urlBasedRequestPrepareOptions);
     }
 
     public async listOrganizations(): Promise<Organization[]> {
@@ -93,7 +98,7 @@ export class AzureDevOpsClient {
                         "repositoryName": inputs.sourceRepository.repositoryName,
                         "branch": inputs.sourceRepository.branch,
                         "sourceBranch": inputs.sourceRepository.branch,
-                        "path": "./azure-pipelines.yml",
+                        "path": inputs.pipelineParameters.checkedInPipelineFileRelativePath,
                         "queue": "Hosted Ubuntu 1604",
                         "commitId": inputs.sourceRepository.commitId,
                         "commitDescriptorName": "Set up CI/CD with Azure Pipelines",
@@ -110,16 +115,21 @@ export class AzureDevOpsClient {
         });
     }
 
-    protected getBaseOrgUrl(organizationName: string, service: string): string {
-        let organizationInfo: { accountId: string, accountName: string, accountUri: string, properties: {} } = null;
-        organizationInfo = this.organizationMap.find((element) => {
-            return element.accountName === organizationName;
-        });
-
-        if (!organizationInfo) {
-            return null;
+    public getBaseOrgUrl(organizationName: string, service: string): string {
+        if (this.lastAccessedOrganization && this.lastAccessedOrganization.accountName === organizationName) {
+            return this.lastAccessedOrganization.accountUri;
         }
-        return organizationInfo.accountUri;
+        else {
+            this.lastAccessedOrganization = this.organizationMap.find((element) => {
+                return element.accountName === organizationName;
+            });
+        }
+
+        if (this.lastAccessedOrganization && this.lastAccessedOrganization.accountUri.startsWith("https://vssps.dev.azure.com:443")) {
+            return utils.format(AzureDevOpsClient.newOrganizationUrl, organizationName);
+        }
+
+        return utils.format(AzureDevOpsClient.oldOrganizationUrl, organizationName);
     }
 
     private getConnectionData(): Promise<any> {
@@ -133,4 +143,9 @@ export class AzureDevOpsClient {
             serializationMapper: null
         });
     }
+
+    private static newOrganizationUrl = "https://dev.azure.com/%s/";
+    private static oldOrganizationUrl = "https://%s.visualstudio.com/";
+
+    private lastAccessedOrganization: Organization;
 }

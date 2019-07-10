@@ -1,13 +1,13 @@
 import * as guidGenerator from 'uuid/v1';
 import { ServiceConnectionClient } from '../../clients/devOps/serviceConnectionClient';
-import { ServiceClientCredentials } from 'ms-rest';
+import { AzureDevOpsClient } from '../../clients/devOps/azureDevOpsClient';
 
 
 export class ServiceConnectionHelper {
     private serviceConnectionClient: ServiceConnectionClient;
 
-    public constructor(organizationName: string, projectName: string, credentials: ServiceClientCredentials) {
-        this.serviceConnectionClient = new ServiceConnectionClient(organizationName, projectName, credentials);
+    public constructor(organizationName: string, projectName: string, azureDevOpsClient: AzureDevOpsClient) {
+        this.serviceConnectionClient = new ServiceConnectionClient(organizationName, projectName, azureDevOpsClient);
     }
 
     public async createGitHubServiceConnection(gitHubPat: string, prefix: string): Promise<string> {

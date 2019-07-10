@@ -50,11 +50,11 @@ export class AzureSession {
 export class AzureParameters {
     subscriptionId: string;
     targetResource: GenericResource;
-    //azureSession: AzureSession;
     serviceConnectionId: string;
 }
 
 export class PipelineParameters {
+    checkedInPipelineFileRelativePath: string;
     pipelineTemplate: PipelineTemplate;
     workingDirectory: string;
 }

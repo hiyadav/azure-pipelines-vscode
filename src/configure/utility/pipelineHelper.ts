@@ -51,31 +51,31 @@ function isDockerApplication(files: string[]): boolean {
 const nodeTemplates: Array<PipelineTemplate> = [
     {
         label: "Node.js with npm",
-        path: path.join(path.dirname(path.dirname(__dirname)), "configure\\pipelines\\nodejs.yml"),
+        path: path.join(path.dirname(path.dirname(__dirname)), "configure/pipelines/nodejs.yml"),
         language: "node",
         targetType: TargetResourceType.WindowsWebApp
     },
     {
         label: "Node.js with Gulp",
-        path: path.join(path.dirname(path.dirname(__dirname)), "configure\\pipelines\\nodejsWithGulp.yml"),
+        path: path.join(path.dirname(path.dirname(__dirname)), "configure/pipelines/nodejsWithGulp.yml"),
         language: "node",
         targetType: TargetResourceType.WindowsWebApp
     },
     {
         label: "Node.js with Grunt",
-        path: path.join(path.dirname(path.dirname(__dirname)), "configure\\pipelines\\nodejsWithGrunt.yml"),
+        path: path.join(path.dirname(path.dirname(__dirname)), "configure/pipelines/nodejsWithGrunt.yml"),
         language: "node",
         targetType: TargetResourceType.WindowsWebApp
     },
     {
         label: "Node.js with Angular",
-        path: path.join(path.dirname(path.dirname(__dirname)), "configure\\pipelines\\nodejsWithAngular.yml"),
+        path: path.join(path.dirname(path.dirname(__dirname)), "configure/pipelines/nodejsWithAngular.yml"),
         language: "node",
         targetType: TargetResourceType.WindowsWebApp
     },
     {
         label: "Node.js with Webpack",
-        path: path.join(path.dirname(path.dirname(__dirname)), "configure\\pipelines\\nodejsWithWebpack.yml"),
+        path: path.join(path.dirname(path.dirname(__dirname)), "configure/pipelines/nodejsWithWebpack.yml"),
         language: "node",
         targetType: TargetResourceType.WindowsWebApp
     }
@@ -83,7 +83,7 @@ const nodeTemplates: Array<PipelineTemplate> = [
 
 // const NodeOnContainers = {
 //     label: "Node.js with containers",
-//     path: path.join(path.dirname(path.dirname(__dirname)), "configure\\pipelines\\dockerWebApp.yml"),
+//     path: path.join(path.dirname(path.dirname(__dirname)), "configure/pipelines/dockerWebApp.yml"),
 //     language: "node",
 //     target: PipelineTargets.WindowsWebApp
 // };

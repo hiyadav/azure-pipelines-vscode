@@ -87,10 +87,11 @@ export class SourceRepositoryService {
             }
             else {
                 let fileContent = Mustache.render(data, context);
-                let ymlFileUri = vscode.Uri.file(path.join(repoPath, "/" + await SourceRepositoryService.getPipelineFileName(repoPath)));
+                let ymlPipelineFileName: string = await SourceRepositoryService.getPipelineFileName(repoPath);
+                let ymlFileUri = vscode.Uri.file(path.join(repoPath, "/" + ymlPipelineFileName));
                 fs.writeFileSync(ymlFileUri.fsPath, fileContent);
                 await vscode.workspace.saveAll(true);
-                deferred.resolve(ymlFileUri.fsPath);
+                deferred.resolve(ymlPipelineFileName);
             }
         });
 
