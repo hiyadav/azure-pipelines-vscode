@@ -1,11 +1,11 @@
-
-import { WizardInputs, Organization } from '../../model/models';
 import { AzureDevOpsClient } from '../../clients/devOps/azureDevOpsClient';
+import { Messages } from '../../messages';
+import { WizardInputs, Organization } from '../../model/models';
 
 export class AzureDevOpsService {
     private azureDevOpsClient: AzureDevOpsClient;
-    private static AzureReposUrl = '"dev.azure.com/"';
-    private static VSOUrl = "visualstudio.com/";
+    private static AzureReposUrl = 'dev.azure.com/';
+    private static VSOUrl = 'visualstudio.com/';
 
     public constructor(azureDevOpsClient: AzureDevOpsClient) {
         this.azureDevOpsClient = azureDevOpsClient;
@@ -18,36 +18,36 @@ export class AzureDevOpsService {
     public static getOrganizationAndProjectNameFromRepositoryUrl(remoteUrl: string): {orgnizationName: string, projectName: string} {
         if (remoteUrl.indexOf(AzureDevOpsService.AzureReposUrl) >= 0) {
             let part = remoteUrl.substr(remoteUrl.indexOf(AzureDevOpsService.AzureReposUrl) + AzureDevOpsService.AzureReposUrl.length);
-            let parts = part.split("/");
+            let parts = part.split('/');
             let organizationName = parts[0].trim();
             let projectName = parts[1].trim();
             return {orgnizationName: organizationName, projectName: projectName};
         }
         else if (remoteUrl.indexOf(AzureDevOpsService.VSOUrl) >= 0) {
             let part = remoteUrl.substr(remoteUrl.indexOf(AzureDevOpsService.VSOUrl) + AzureDevOpsService.VSOUrl.length);
-            let parts = part.split("/");
-            let organizationName = remoteUrl.substring(remoteUrl.indexOf("https://") + "https://".length, remoteUrl.indexOf(".visualstudio.com"));
+            let parts = part.split('/');
+            let organizationName = remoteUrl.substring(remoteUrl.indexOf('https://') + 'https://'.length, remoteUrl.indexOf('.visualstudio.com'));
             let projectName = parts[0].trim();
             return {orgnizationName: organizationName, projectName: projectName};
         }
         else {
-            throw new Error("Repo Url is not of Azure Repos type.");
+            throw new Error(Messages.notAzureRepoUrl);
         }
     }
 
     public static getRepositoryNameFromRemoteUrl(remoteUrl: string): string {
         if (remoteUrl.indexOf(AzureDevOpsService.AzureReposUrl) >= 0) {
             let part = remoteUrl.substr(remoteUrl.indexOf(AzureDevOpsService.AzureReposUrl) + AzureDevOpsService.AzureReposUrl.length);
-            let parts = part.split("/");
+            let parts = part.split('/');
             return parts[3].trim();
         }
         else if (remoteUrl.indexOf(AzureDevOpsService.VSOUrl) >= 0) {
             let part = remoteUrl.substr(remoteUrl.indexOf(AzureDevOpsService.VSOUrl) + AzureDevOpsService.VSOUrl.length);
-            let parts = part.split("/");
+            let parts = part.split('/');
             return parts[2].trim();
         }
         else {
-            throw new Error("Repo Url is not of Azure Repos type.");
+            throw new Error(Messages.notAzureRepoUrl);
         }
     }
 
@@ -78,7 +78,7 @@ export class AzureDevOpsService {
 
     public async createAndRunPipeline(inputs: WizardInputs): Promise<string> {
         var createAndRunPipelineResponse = await this.azureDevOpsClient.createAndRunPipeline(inputs);
-        return createAndRunPipelineResponse.dataProviders["ms.vss-build-web.create-and-run-pipeline-data-provider"].pipelineBuildWebUrl;
+        return createAndRunPipelineResponse.dataProviders['ms.vss-build-web.create-and-run-pipeline-data-provider'].pipelineBuildWebUrl;
     }
 
     public async getPipelineCompletionStatus(pipelineUrl: string, monitoringOptions: {}) {

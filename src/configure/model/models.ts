@@ -1,10 +1,10 @@
+import { SubscriptionModels } from 'azure-arm-resource';
 import { GenericResource } from 'azure-arm-resource/lib/resource/models';
 import { ServiceClientCredentials } from 'ms-rest';
 import { AzureEnvironment } from 'ms-rest-azure';
 import { OutputChannel, ExtensionContext } from 'vscode';
 import { UIExtensionVariables, IAzureUserInput } from 'vscode-azureextensionui';
 import TelemetryReporter from 'vscode-extension-telemetry';
-import { SubscriptionModels } from 'azure-arm-resource';
 
 class ExtensionVariables implements UIExtensionVariables {
     public azureAccountExtensionApi: AzureAccountExtensionExports;
@@ -78,9 +78,9 @@ export interface PipelineTemplate {
 }
 
 export enum SourceOptions {
-    CurrentWorkspace = "Current workspace",
-    BrowseLocalMachine = "Browse local machine",
-    GithubRepository = "Github repository"
+    CurrentWorkspace = 'Current workspace',
+    BrowseLocalMachine = 'Browse local machine',
+    GithubRepository = 'Github repository'
 }
 
 export enum RepositoryProvider {
@@ -94,13 +94,13 @@ export enum TargetResourceType {
 }
 
 export enum ServiceConnectionType {
-    GitHub = "github",
-    AzureRM = "azurerm"
+    GitHub = 'github',
+    AzureRM = 'azurerm'
 }
 
 export enum WebAppKind {
-    WindowsApp = "app",
-    FunctionApp = "functionapp",
-    LinuxApp ="app,linux",
-    LinuxContainerApp = "app,linux,container"
+    WindowsApp = 'app',
+    FunctionApp = 'functionapp',
+    LinuxApp ='app,linux',
+    LinuxContainerApp = 'app,linux,container'
 }

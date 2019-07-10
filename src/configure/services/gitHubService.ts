@@ -1,6 +1,6 @@
 export class GitHubProvider {
     // private gitHubPatToken: string;
-    private static GitHubUrl = "https://github.com/";
+    private static GitHubUrl = 'https://github.com/';
 
     // constructor(gitHubPat: string) {
     //     this.gitHubPatToken = gitHubPat;
@@ -11,7 +11,7 @@ export class GitHubProvider {
     }
 
     public static getRepositoryIdFromUrl(remoteUrl: string): string {
-        let endCount: number = remoteUrl.indexOf(".git");
+        let endCount: number = remoteUrl.indexOf('.git');
         if (endCount < 0) {
             endCount = remoteUrl.length;
         }

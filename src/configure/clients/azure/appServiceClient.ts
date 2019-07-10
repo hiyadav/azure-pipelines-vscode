@@ -1,19 +1,21 @@
-import { WebAppKind } from "../../model/models";
-import { ServiceClientCredentials } from "ms-rest";
-import { AzureResourceClient } from "./azureResourceClient";
-import { ResourceListResult, GenericResource } from "azure-arm-resource/lib/resource/models";
+import { ResourceListResult, GenericResource } from 'azure-arm-resource/lib/resource/models';
+import { ServiceClientCredentials } from 'ms-rest';
+
+import { AzureResourceClient } from './azureResourceClient';
+import { Messages } from '../../messages';
+import { WebAppKind } from '../../model/models';
 
 export class AppServiceClient extends AzureResourceClient {
 
-    private static apiVersion = "2019-05-01";
-    private static resourceType = "Microsoft.Web/sites";
+    private static apiVersion = '2019-05-01';
+    private static resourceType = Messages.webAppResourceType;
     constructor(credentials: ServiceClientCredentials, subscriptionId: string) {
         super(credentials, subscriptionId);
     }
 
     public async getAppServiceResource(resourceId): Promise<GenericResource> {
         if (!resourceId) {
-            throw new Error("Required argument: resourceId, is missing. Kindly pass the argument for getting resource.");
+            throw new Error(Messages.resourceIdMissing);
         }
 
         return await this.getResource(resourceId, AppServiceClient.apiVersion);

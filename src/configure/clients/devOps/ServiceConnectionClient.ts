@@ -1,8 +1,9 @@
-import { UrlBasedRequestPrepareOptions } from "ms-rest";
-import { AzureDevOpsClient } from "./azureDevOpsClient";
+import { UrlBasedRequestPrepareOptions } from 'ms-rest';
+
+import { AzureDevOpsClient } from './azureDevOpsClient';
 
 export class ServiceConnectionClient {
-    private static serviceType = "serviceConnection";
+    private static serviceType = 'serviceConnection';
     private azureDevOpsClient: AzureDevOpsClient;
     private organizationName: string;
     private projectName: string;

@@ -1,7 +1,9 @@
+import * as util from 'util';
 import * as guidGenerator from 'uuid/v1';
-import { ServiceConnectionClient } from '../../clients/devOps/serviceConnectionClient';
-import { AzureDevOpsClient } from '../../clients/devOps/azureDevOpsClient';
 
+import { AzureDevOpsClient } from '../../clients/devOps/azureDevOpsClient';
+import { ServiceConnectionClient } from '../../clients/devOps/serviceConnectionClient';
+import { Messages } from '../../messages';
 
 export class ServiceConnectionHelper {
     private serviceConnectionClient: ServiceConnectionClient;
@@ -19,7 +21,7 @@ export class ServiceConnectionHelper {
         await this.serviceConnectionClient.authorizeEndpointForAllPipelines(endpointId)
             .then((response) => {
                 if (response.allPipelines.authorized !== true) {
-                    throw new Error("Could not authorize endpoint for use in Pipelines.");
+                    throw new Error(Messages.couldNotAuthorizeEndpoint);
                 }
             });
 
@@ -34,7 +36,7 @@ export class ServiceConnectionHelper {
         await this.serviceConnectionClient.authorizeEndpointForAllPipelines(endpointId)
             .then((response) => {
                 if (response.allPipelines.authorized !== true) {
-                    throw new Error("Could not authorize endpoint for use in Pipelines.");
+                    throw new Error(Messages.couldNotAuthorizeEndpoint);
                 }
             });
 
@@ -52,7 +54,7 @@ export class ServiceConnectionHelper {
             }
 
             if (!(retryCount < 20) || operationStatus.state.toLowerCase() === "failed") {
-                throw Error(`Unable to create azure service connection.\nOperation Status: ${operationStatus.state} \nMessage: ${operationStatus.statusMessage} \nService connection is not in ready state.`);
+                throw Error(util.format(Messages.unableToCreateAzureServiceConnection, operationStatus.state, operationStatus.statusMessage));
             }
 
             await this.sleepForMilliSeconds(2000);
@@ -71,7 +73,7 @@ export class ServiceConnectionHelper {
             }
 
             if (!(retryCount < 20)) {
-                throw Error(`Unable to create azure service connection.\nOperation Status: ${isReady}\nService connection is not in ready state.`);
+                throw Error(util.format(Messages.unableToCreateGitHubServiceConnection, isReady));
             }
 
             await this.sleepForMilliSeconds(2000);

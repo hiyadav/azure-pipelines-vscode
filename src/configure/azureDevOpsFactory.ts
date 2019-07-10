@@ -1,7 +1,7 @@
-import { ServiceClientCredentials } from "ms-rest";
-import { AzureDevOpsService } from "./services/devOps/azureDevOpsService";
-import { ServiceConnectionHelper } from "./services/devOps/serviceConnection";
-import { AzureDevOpsClient } from "./clients/devOps/azureDevOpsClient";
+import { ServiceClientCredentials } from 'ms-rest';
+import { AzureDevOpsService } from './services/devOps/azureDevOpsService';
+import { ServiceConnectionHelper } from './services/devOps/serviceConnection';
+import { AzureDevOpsClient } from './clients/devOps/azureDevOpsClient';
 
 export class AzureDevOpsFactory {
   private azureDevOpsClient: AzureDevOpsClient;

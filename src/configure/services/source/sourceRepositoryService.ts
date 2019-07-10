@@ -1,10 +1,12 @@
 import * as fs from 'fs';
-import * as Mustache from "mustache";
+import * as Mustache from 'mustache';
 import * as path from 'path';
-import * as git from "simple-git/promise";
+import * as git from 'simple-git/promise';
+import * as util from 'util';
 import * as vscode from 'vscode';
 
-import { AzureDevOpsService } from "../devOps/azureDevOpsService";
+import { AzureDevOpsService } from '../devOps/azureDevOpsService';
+import { Messages } from '../../messages';
 import { GitRepositoryParameters, RepositoryProvider, WizardInputs } from '../../model/models';
 import { GitHubProvider } from '../gitHubService';
 import { BranchSummary } from 'simple-git/typings/response';
@@ -31,7 +33,7 @@ export class SourceRepositoryService {
         if (!status.tracking) {
             let remotes = await this.gitReference.getRemotes(false);
             if (remotes.length !== 1) {
-                throw new Error(`The branch: ${branch} does not have any tracking branch. Also the repositoy has either more than one remotes or no remotes. Hence, we are unable to create a remote tracking branch. Kindly, create a remote tracking branch to procceed.`);
+                throw new Error(util.format(Messages.branchRemoteMissing, branch));
             }
             remote = remotes[0].name;
         }
@@ -65,11 +67,11 @@ export class SourceRepositoryService {
                 };
             }
             else {
-                throw new Error("Could not identify repository details. Ensure your git repo is managed with Azure Repos or Github");
+                throw new Error(Messages.canNotIdentifyRespositoryDetails);
             }
         }
         else {
-            throw new Error("Remote repository is not configured. Manage your git repository with Azure Repos or Github");
+            throw new Error(Messages.remoteRepositoryNotConfigured);
         }
     }
 
@@ -112,14 +114,14 @@ export class SourceRepositoryService {
 
 
         await this.gitReference.add(pipelineYamlPath);
-        let commit = await this.gitReference.commit("Add yml file to workspace", pipelineYamlPath);
+        let commit = await this.gitReference.commit(Messages.addYmlFile, pipelineYamlPath);
         let status = await this.gitReference.status();
         let branch = status.current;
         let remote = status.tracking;
         if (!remote) {
             let remotes = await this.gitReference.getRemotes(false);
             if (remotes.length !== 1) {
-                throw new Error(`The branch: ${branch} does not have any tracking branch. Also the repositoy has either more than one remotes or no remotes. Hence, we are unable to create a remote tracking branch. Kindly, create a remote tracking branch to procceed.`);
+                throw new Error(util.format(Messages.branchRemoteMissing, branch));
             }
             remote = remotes[0].name;
         }
@@ -133,7 +135,7 @@ export class SourceRepositoryService {
             });
         }
         else {
-            throw new Error("Cannot add yml file to your git repository, remote is not set");
+            throw new Error(Messages.cannotAddFileRemoteMissing);
         }
 
         return {
