@@ -116,10 +116,7 @@ export class AzureDevOpsClient {
     }
 
     public getBaseOrgUrl(organizationName: string, service: string): string {
-        if (this.lastAccessedOrganization && this.lastAccessedOrganization.accountName === organizationName) {
-            return this.lastAccessedOrganization.accountUri;
-        }
-        else {
+        if (!this.lastAccessedOrganization || this.lastAccessedOrganization.accountName !== organizationName) {
             this.lastAccessedOrganization = this.organizationMap.find((element) => {
                 return element.accountName === organizationName;
             });

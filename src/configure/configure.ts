@@ -1,3 +1,4 @@
+import * as path from 'path';
 import * as vscode from 'vscode';
 
 import { ResourceListResult, GenericResource } from 'azure-arm-resource/lib/resource/models';
@@ -65,7 +66,7 @@ class PipelineConfigurer {
             await this.getGitubConnectionService();
         }
 
-        if (!this.inputs.targetResource.targetResource) {
+        if (!this.inputs.targetResource.resource) {
             await this.getAzureResourceDetails();
         }
 
@@ -147,7 +148,7 @@ class PipelineConfigurer {
             case "Microsoft.Web/sites":
                 switch (azureResource.kind) {
                     case WebAppKind.WindowsApp:
-                        this.inputs.targetResource.targetResource = azureResource;
+                        this.inputs.targetResource.resource = azureResource;
                         break;
                     case WebAppKind.FunctionApp:
                     case WebAppKind.LinuxApp:
@@ -211,7 +212,7 @@ class PipelineConfigurer {
         });
 
         let selectedResource: vscode.QuickPickItem = await extensionVariables.ui.showQuickPick(resourceDisplayList, { placeHolder: "Select Web App " });
-        this.inputs.targetResource.targetResource = resourceListResult.find((value: GenericResource) => {
+        this.inputs.targetResource.resource = resourceListResult.find((value: GenericResource) => {
             return value.name === selectedResource.label;
         });
     }
@@ -247,7 +248,7 @@ class PipelineConfigurer {
                 title: `Connecting azure pipelines with your subscription: ${this.inputs.targetResource.subscriptionId}`
             },
             () => {
-                return this.connectionService.createAzureServiceConnection(this.inputs.targetResource.targetResource.name, this.inputs.azureSession.tenantId, this.inputs.targetResource.subscriptionId);
+                return this.connectionService.createAzureServiceConnection(this.inputs.targetResource.resource.name, this.inputs.azureSession.tenantId, this.inputs.targetResource.subscriptionId);
             });
     }
 
@@ -256,7 +257,7 @@ class PipelineConfigurer {
             this.inputs.pipelineParameters.pipelineTemplate.path,
             this.inputs.sourceRepository.localPath, this.inputs);
 
-        await vscode.window.showTextDocument(vscode.Uri.file(this.inputs.pipelineParameters.checkedInPipelineFileRelativePath));
+        await vscode.window.showTextDocument(vscode.Uri.file(path.join(this.inputs.sourceRepository.localPath, this.inputs.pipelineParameters.checkedInPipelineFileRelativePath)));
         await vscode.window.showInformationMessage("Modify and commit yaml pipeline file to deploy.", "Commit & Push", "Discard Pipeline")
             .then((commitOrDiscard: string) => {
                 if (commitOrDiscard.toLowerCase() === "commit & push") {
@@ -268,7 +269,7 @@ class PipelineConfigurer {
                     });
                 }
                 else {
-                    throw new Error("Operation was discarded.");
+                    throw new Error("Operation cancelled.");
                 }
             });
     }

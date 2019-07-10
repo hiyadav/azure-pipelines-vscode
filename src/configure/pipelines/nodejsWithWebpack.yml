@@ -36,7 +36,7 @@ steps:
 - task: AzureWebApp@1
   displayName: 'Azure Web App Deploy'
   inputs:
-    azureSubscription: '{{ azureParameters.azureServiceConnectionId }}'
+    azureSubscription: '{{ targetResource.serviceConnectionId }}'
     appType: webApp
-    appName: '{{ azureParameters.targetResource.name }}'
+    appName: '{{ targetResource.resource.name }}'
     package: $(Build.ArtifactStagingDirectory)/$(Build.BuildId).zip

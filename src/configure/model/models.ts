@@ -30,7 +30,7 @@ export class WizardInputs {
     sourceRepository: GitRepositoryParameters;
     targetResource: AzureParameters = new AzureParameters();
     pipelineParameters: PipelineParameters = new PipelineParameters();
-    azureSession: AzureSession = new AzureSession();
+    azureSession: AzureSession;
 }
 
 export class Organization {
@@ -49,7 +49,7 @@ export class AzureSession {
 
 export class AzureParameters {
     subscriptionId: string;
-    targetResource: GenericResource;
+    resource: GenericResource;
     serviceConnectionId: string;
 }
 
