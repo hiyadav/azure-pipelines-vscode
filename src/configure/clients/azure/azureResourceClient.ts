@@ -4,10 +4,10 @@ import { ServiceClientCredentials } from 'ms-rest';
 
 export class AzureResourceClient {
 
-    private azureRmClient: ResourceManagementClient;
+    private azureRmClient: ResourceManagementClient.ResourceManagementClient;
 
     constructor(credentials: ServiceClientCredentials, subscriptionId: string) {
-        this.azureRmClient = new ResourceManagementClient(credentials, subscriptionId);
+        this.azureRmClient = new ResourceManagementClient.ResourceManagementClient(credentials, subscriptionId);
     }
 
     public async getResourceList(resourceType: string, followNextLink: boolean = true): Promise<ResourceListResult> {
