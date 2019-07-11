@@ -38,16 +38,6 @@ function isNodeRepo(files: string[]): boolean {
     });
 }
 
-function isDockerApplication(files: string[]): boolean {
-    let nodeFilesRegex = '**/*Dockerfile*';
-    return files.some((file) => {
-        if (new RegExp(nodeFilesRegex).test(file.toLowerCase())) {
-            return true;
-        }
-        return false;
-    });
-}
-
 const nodeTemplates: Array<PipelineTemplate> = [
     {
         label: 'Node.js with npm',

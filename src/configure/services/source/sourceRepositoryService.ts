@@ -67,7 +67,7 @@ export class SourceRepositoryService {
                 };
             }
             else {
-                throw new Error(Messages.canNotIdentifyRespositoryDetails);
+                throw new Error(Messages.cannotIdentifyRespositoryDetails);
             }
         }
         else {

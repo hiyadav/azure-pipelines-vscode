@@ -9,9 +9,6 @@ trigger:
 pool:
   vmImage: 'Ubuntu-16.04'
 
-pool:
-  vmImage: 'ubuntu-latest'
-
 steps:
 - task: NodeTool@0
   inputs:
