@@ -2,12 +2,12 @@ import * as path from 'path';
 import * as utils from 'util';
 import * as vscode from 'vscode';
 
-import { ResourceListResult, GenericResource } from 'azure-arm-resource/lib/resource/models';
+import { GenericResource } from 'azure-arm-resource/lib/resource/models';
 import { AzureTreeItem } from 'vscode-azureextensionui';
 import { QuickPickItem } from 'vscode';
 
 import { Messages } from './messages';
-import { SourceOptions, RepositoryProvider, extensionVariables, WizardInputs, WebAppKind, PipelineTemplate } from './model/models';
+import { SourceOptions, RepositoryProvider, extensionVariables, WizardInputs, WebAppKind, PipelineTemplate, QuickPickItemWithData } from './model/models';
 import { AzureDevOpsService } from './services/devOps/azureDevOpsService';
 import { SourceRepositoryService } from './services/source/sourceRepositoryService';
 import { analyzeRepoAndListAppropriatePipeline } from './utility/pipelineHelper';
@@ -166,14 +166,12 @@ class PipelineConfigurer {
 
     private async getAzureDevOpsDetails(): Promise<void> {
         if (!this.inputs.organizationName) {
-            let organizationList: string[] = await this.azureDevOpsService.listOrganizations();
-            let selectedOrganization = await extensionVariables.ui.showQuickPick(organizationList.map((org) => { return { label: org }; }), { placeHolder: Messages.selectOrganization });
+            let selectedOrganization = await extensionVariables.ui.showQuickPick(this.azureDevOpsService.listOrganizations(), { placeHolder: Messages.selectOrganization });
             this.inputs.organizationName = selectedOrganization.label;
         }
 
         if (!this.inputs.projectName) {
-            let projectList = await this.azureDevOpsService.listProjects(this.inputs.organizationName);
-            let selectedProject = await extensionVariables.ui.showQuickPick(projectList.map((project) => { return { label: project }; }), { placeHolder: Messages.selectProject });
+            let selectedProject = await extensionVariables.ui.showQuickPick(this.azureDevOpsService.listProjects(this.inputs.organizationName), { placeHolder: Messages.selectProject });
             this.inputs.projectName = selectedProject.label;
         }
     }
@@ -194,29 +192,20 @@ class PipelineConfigurer {
     }
 
     private async getAzureResourceDetails(): Promise<void> {
-        let subscriptions = extensionVariables.azureAccountExtensionApi.subscriptions;
-        let subscriptionList = subscriptions.map((subscriptionObject) => {
-            return <QuickPickItem>{
-                label: <string>subscriptionObject.subscription.displayName
+        // show available subscriptions and get the chosen one
+        let subscriptionList = extensionVariables.azureAccountExtensionApi.subscriptions.map((subscriptionObject) => {
+            return <QuickPickItemWithData>{
+                label: <string>subscriptionObject.subscription.displayName,
+                data: subscriptionObject
             };
         });
-        let selectedSubscription: QuickPickItem = await extensionVariables.ui.showQuickPick(subscriptionList, { placeHolder: Messages.selectSubscription });
-        this.inputs.targetResource.subscriptionId = subscriptions.find((subscriptionObject) => {
-            return subscriptionObject.subscription.displayName === selectedSubscription.label;
-        }).subscription.subscriptionId;
+        let selectedSubscription: QuickPickItemWithData = await extensionVariables.ui.showQuickPick(subscriptionList, { placeHolder: Messages.selectSubscription });
+        this.inputs.targetResource.subscriptionId = selectedSubscription.data.subscription.subscriptionId;
 
+        // show available resources and get the chosen one
         this.appServiceClient = new AppServiceClient(extensionVariables.azureAccountExtensionApi.sessions[0].credentials, this.inputs.targetResource.subscriptionId);
-        let resourceListResult: ResourceListResult = await this.appServiceClient.GetAppServices(WebAppKind.WindowsApp);
-        let resourceDisplayList = resourceListResult.map((resource) => {
-            return <vscode.QuickPickItem>{
-                label: resource.name
-            };
-        });
-
-        let selectedResource: vscode.QuickPickItem = await extensionVariables.ui.showQuickPick(resourceDisplayList, { placeHolder: Messages.selectWebApp });
-        this.inputs.targetResource.resource = resourceListResult.find((value: GenericResource) => {
-            return value.name === selectedResource.label;
-        });
+        let selectedResource: QuickPickItemWithData = await extensionVariables.ui.showQuickPick(this.appServiceClient.GetAppServices(WebAppKind.WindowsApp), { placeHolder: Messages.selectWebApp });
+        this.inputs.targetResource.resource = selectedResource.data;
     }
 
     private async getGitubConnectionService(): Promise<void> {

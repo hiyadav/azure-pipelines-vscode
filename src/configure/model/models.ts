@@ -2,7 +2,7 @@ import { SubscriptionModels } from 'azure-arm-resource';
 import { GenericResource } from 'azure-arm-resource/lib/resource/models';
 import { ServiceClientCredentials } from 'ms-rest';
 import { AzureEnvironment } from 'ms-rest-azure';
-import { OutputChannel, ExtensionContext } from 'vscode';
+import { OutputChannel, ExtensionContext, QuickPickItem } from 'vscode';
 import { UIExtensionVariables, IAzureUserInput } from 'vscode-azureextensionui';
 import TelemetryReporter from 'vscode-extension-telemetry';
 
@@ -103,4 +103,11 @@ export enum WebAppKind {
     FunctionApp = 'functionapp',
     LinuxApp ='app,linux',
     LinuxContainerApp = 'app,linux,container'
+}
+
+export class QuickPickItemWithData implements QuickPickItem {
+    label: string;
+    data: any;
+    description?: string;
+    detail?: string;
 }

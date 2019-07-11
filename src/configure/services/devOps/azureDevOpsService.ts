@@ -1,6 +1,6 @@
 import { AzureDevOpsClient } from '../../clients/devOps/azureDevOpsClient';
 import { Messages } from '../../messages';
-import { WizardInputs, Organization } from '../../model/models';
+import { WizardInputs, Organization, QuickPickItemWithData } from '../../model/models';
 
 export class AzureDevOpsService {
     private azureDevOpsClient: AzureDevOpsClient;
@@ -15,20 +15,20 @@ export class AzureDevOpsService {
         return (remoteUrl.indexOf(AzureDevOpsService.AzureReposUrl) >= 0 || remoteUrl.indexOf(AzureDevOpsService.VSOUrl) >= 0);
     }
 
-    public static getOrganizationAndProjectNameFromRepositoryUrl(remoteUrl: string): {orgnizationName: string, projectName: string} {
+    public static getOrganizationAndProjectNameFromRepositoryUrl(remoteUrl: string): { orgnizationName: string, projectName: string } {
         if (remoteUrl.indexOf(AzureDevOpsService.AzureReposUrl) >= 0) {
             let part = remoteUrl.substr(remoteUrl.indexOf(AzureDevOpsService.AzureReposUrl) + AzureDevOpsService.AzureReposUrl.length);
             let parts = part.split('/');
             let organizationName = parts[0].trim();
             let projectName = parts[1].trim();
-            return {orgnizationName: organizationName, projectName: projectName};
+            return { orgnizationName: organizationName, projectName: projectName };
         }
         else if (remoteUrl.indexOf(AzureDevOpsService.VSOUrl) >= 0) {
             let part = remoteUrl.substr(remoteUrl.indexOf(AzureDevOpsService.VSOUrl) + AzureDevOpsService.VSOUrl.length);
             let parts = part.split('/');
             let organizationName = remoteUrl.substring(remoteUrl.indexOf('https://') + 'https://'.length, remoteUrl.indexOf('.visualstudio.com'));
             let projectName = parts[0].trim();
-            return {orgnizationName: organizationName, projectName: projectName};
+            return { orgnizationName: organizationName, projectName: projectName };
         }
         else {
             throw new Error(Messages.notAzureRepoUrl);
@@ -56,21 +56,21 @@ export class AzureDevOpsService {
         return repositoryDetails.id;
     }
 
-    public async listOrganizations(refreshList: boolean = false): Promise<string[]> {
-        let organizations: Organization[]= await this.azureDevOpsClient.listOrganizations();
-        let organizationNames: string[] = [];
+    public async listOrganizations(refreshList: boolean = false): Promise<QuickPickItemWithData[]> {
+        let organizations: Organization[] = await this.azureDevOpsClient.listOrganizations();
+        let organizationList: QuickPickItemWithData[] = [];
         for (let organization of organizations) {
-            organizationNames.push(organization.accountName);
+            organizationList.push({ label: organization.accountName, data: organization });
         }
 
-        return organizationNames;
+        return organizationList;
     }
 
-    public async listProjects(organizationName: string): Promise<string[]> {
+    public async listProjects(organizationName: string): Promise<QuickPickItemWithData[]> {
         let projects = await this.azureDevOpsClient.listProjects(organizationName);
-        let items: string[] = [];
+        let items: QuickPickItemWithData[] = [];
         for (let project of projects.value) {
-            items.push(project.name);
+            items.push({ label: project.name, data: project });
         }
 
         return items;

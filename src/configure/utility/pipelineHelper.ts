@@ -70,10 +70,3 @@ const nodeTemplates: Array<PipelineTemplate> = [
         targetType: TargetResourceType.WindowsWebApp
     }
 ];
-
-// const NodeOnContainers = {
-//     label: 'Node.js with containers',
-//     path: path.join(path.dirname(path.dirname(__dirname)), 'configure/pipelines/dockerWebApp.yml'),
-//     language: 'node',
-//     target: PipelineTargets.WindowsWebApp
-// };
