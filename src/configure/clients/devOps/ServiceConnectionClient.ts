@@ -3,7 +3,7 @@ import { UrlBasedRequestPrepareOptions } from 'ms-rest';
 import { AzureDevOpsClient } from './azureDevOpsClient';
 
 export class ServiceConnectionClient {
-    private static serviceType = 'serviceConnection';
+    private static serviceType = 'tfs';
     private azureDevOpsClient: AzureDevOpsClient;
     private organizationName: string;
     private projectName: string;

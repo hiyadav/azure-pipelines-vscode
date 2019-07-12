@@ -54,7 +54,7 @@ export class AzureParameters {
 }
 
 export class PipelineParameters {
-    checkedInPipelineFileRelativePath: string;
+    pipelineFilePath: string;
     pipelineTemplate: PipelineTemplate;
     workingDirectory: string;
 }

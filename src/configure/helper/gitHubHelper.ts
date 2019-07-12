@@ -18,12 +18,4 @@ export class GitHubProvider {
 
         return remoteUrl.substring(GitHubProvider.GitHubUrl.length, endCount);
     }
-
-    public GetRepos(fetchAllRepos: boolean = false): Array<{organizationName: string, repositoryName: string, respositoryId: string}> {
-        return [];
-    }
-
-    public GetBranches(organizationName: string, repositoryName: string): Array<string> {
-        return [];
-    }
 }

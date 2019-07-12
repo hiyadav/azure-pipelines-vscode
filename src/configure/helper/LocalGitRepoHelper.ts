@@ -1,27 +1,45 @@
 import * as fs from 'fs';
-import * as Mustache from 'mustache';
 import * as path from 'path';
 import * as git from 'simple-git/promise';
+import * as Q from 'q';
 import * as util from 'util';
 import * as vscode from 'vscode';
 
-import { AzureDevOpsService } from '../devOps/azureDevOpsService';
-import { Messages } from '../../messages';
-import { GitRepositoryParameters, RepositoryProvider, WizardInputs } from '../../model/models';
-import { GitHubProvider } from '../gitHubService';
+import { AzureDevOpsHelper } from './devOps/azureDevOpsHelper';
+import { Messages } from '../messages';
+import { GitRepositoryParameters, RepositoryProvider } from '../model/models';
+import { GitHubProvider } from './gitHubHelper';
 import { BranchSummary } from 'simple-git/typings/response';
-import Q = require('q');
 
-export class SourceRepositoryService {
+export class LocalGitRepoHelper {
     private gitReference: git.SimpleGit;
 
     private constructor() {
     }
 
-    public static GetSourceRepositoryService(repositoryPath: string): SourceRepositoryService {
-        var repoService = new SourceRepositoryService();
+    public static GetSourceRepositoryService(repositoryPath: string): LocalGitRepoHelper {
+        var repoService = new LocalGitRepoHelper();
         repoService.initialize(repositoryPath);
         return repoService;
+    }
+
+    public static async GetAvailableFileName(fileName:string, repoPath: string): Promise<string> {
+        let deferred: Q.Deferred<string> = Q.defer();
+        fs.readdir(repoPath, (err, files: string[]) => {
+            if (files.indexOf(fileName) < 0) {
+                deferred.resolve(fileName);
+            }
+            else {
+                for (let i = 1; i < 100; i++) {
+                    let increamentalFileName = LocalGitRepoHelper.getIncreamentalFileName(fileName, i);
+                    if (files.indexOf(increamentalFileName) < 0) {
+                        deferred.resolve(increamentalFileName);
+                    }
+                }
+            }
+        });
+
+        return deferred.promise;
     }
 
     public async getGitRepoDetails(repositoryPath: string): Promise<GitRepositoryParameters> {
@@ -43,11 +61,11 @@ export class SourceRepositoryService {
         remoteUrl = await this.gitReference.remote(["get-url", remote]);
 
         if (remoteUrl) {
-            if (AzureDevOpsService.isAzureReposUrl(remoteUrl)) {
+            if (AzureDevOpsHelper.isAzureReposUrl(remoteUrl)) {
                 return <GitRepositoryParameters>{
                     repositoryProvider: RepositoryProvider.AzureRepos,
                     repositoryId: "",
-                    repositoryName: AzureDevOpsService.getRepositoryNameFromRemoteUrl(remoteUrl),
+                    repositoryName: AzureDevOpsHelper.getRepositoryNameFromRemoteUrl(remoteUrl),
                     remoteUrl: remoteUrl,
                     branch: branch,
                     commitId: commitId,
@@ -81,23 +99,11 @@ export class SourceRepositoryService {
      * @param context: inputs required to be filled in the yaml pipelines
      * @returns: thenable object which resolves once all files are added to the repository
      */
-    public addYmlFileToRepo(pipelineTemplateFilePath: string, repoPath: string, context: WizardInputs): Q.Promise<string> {
-        let deferred: Q.Deferred<string> = Q.defer();
-        fs.readFile(pipelineTemplateFilePath, { encoding: "utf8" }, async (error, data) => {
-            if (error) {
-                throw new Error(error.message);
-            }
-            else {
-                let fileContent = Mustache.render(data, context);
-                let ymlPipelineFileName: string = await SourceRepositoryService.getPipelineFileName(repoPath);
-                let ymlFileUri = vscode.Uri.file(path.join(repoPath, "/" + ymlPipelineFileName));
-                fs.writeFileSync(ymlFileUri.fsPath, fileContent);
-                await vscode.workspace.saveAll(true);
-                deferred.resolve(ymlPipelineFileName);
-            }
-        });
-
-        return deferred.promise;
+    public async addContentToFile(content: string, fileName: string, repoPath: string): Promise<string> {
+        let filePath = path.join(repoPath, "/" + fileName);
+        fs.writeFileSync(filePath, content);
+        await vscode.workspace.saveAll(true);
+        return fileName;
     }
 
     /**
@@ -106,13 +112,6 @@ export class SourceRepositoryService {
      * @returns: thenable object which resolves once commit is pushed to remote branch, and failure message if unsuccessful
      */
     public async commitAndPushPipelineFile(pipelineYamlPath: string): Promise<{ commitId: string, branch: string }> {
-        // TODO
-        // unstages the changes already staged
-        // stages the file at the mentioned path
-        // commit the staged file
-        // stage the previously staged changes
-
-
         await this.gitReference.add(pipelineYamlPath);
         let commit = await this.gitReference.commit(Messages.addYmlFile, pipelineYamlPath);
         let status = await this.gitReference.status();
@@ -144,26 +143,6 @@ export class SourceRepositoryService {
         };
     }
 
-    private static async getPipelineFileName(repoPath: string): Promise<string> {
-        let deferred: Q.Deferred<string> = Q.defer();
-        fs.readdir(repoPath, (err, files: string[]) => {
-            let fileName = "azure-pipelines.yml";
-            if (files.indexOf(fileName) < 0) {
-                deferred.resolve(fileName);
-            }
-            else {
-                for (let i = 1; i < 100; i++) {
-                    let increamentalFileName = SourceRepositoryService.getIncreamentalFileName(fileName, i);
-                    if (files.indexOf(increamentalFileName) < 0) {
-                        deferred.resolve(increamentalFileName);
-                    }
-                }
-            }
-        });
-
-        return deferred.promise;
-    }
-
     private static getIncreamentalFileName(fileName: string, count: number): string {
         return fileName.substr(0, fileName.indexOf('.')).concat(` (${count})`, fileName.substr(fileName.indexOf('.')));
     }
@@ -177,7 +156,7 @@ export class SourceRepositoryService {
         return "";
     }
 
-    private  initialize(repositoryPath: string): void {
+    private initialize(repositoryPath: string): void {
         this.gitReference = git(repositoryPath);
     }
 }

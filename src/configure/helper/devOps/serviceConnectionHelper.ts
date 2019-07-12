@@ -1,5 +1,4 @@
 import * as util from 'util';
-import * as guidGenerator from 'uuid/v1';
 
 import { AzureDevOpsClient } from '../../clients/devOps/azureDevOpsClient';
 import { ServiceConnectionClient } from '../../clients/devOps/serviceConnectionClient';
@@ -12,10 +11,8 @@ export class ServiceConnectionHelper {
         this.serviceConnectionClient = new ServiceConnectionClient(organizationName, projectName, azureDevOpsClient);
     }
 
-    public async createGitHubServiceConnection(gitHubPat: string, prefix: string): Promise<string> {
-        let endpointName: string = prefix.concat(guidGenerator().substr(0, 5));
-
-        let response = await this.serviceConnectionClient.createGitHubServiceConnection(endpointName, gitHubPat);
+    public async createGitHubServiceConnection(name: string, gitHubPat: string): Promise<string> {
+        let response = await this.serviceConnectionClient.createGitHubServiceConnection(name, gitHubPat);
         let endpointId: string = response.id;
         await this.waitForGitHubEndpointToBeReady(endpointId);
         await this.serviceConnectionClient.authorizeEndpointForAllPipelines(endpointId)
@@ -28,9 +25,8 @@ export class ServiceConnectionHelper {
         return endpointId;
     }
 
-    public async createAzureServiceConnection(prefix: string, tenantId: string, subscriptionId: string, scope?: string, ): Promise<string> {
-        let endpointName: string = prefix.concat(guidGenerator().substr(0, 5));
-        let response = await this.serviceConnectionClient.createAzureServiceConnection(endpointName, tenantId, subscriptionId, scope);
+    public async createAzureServiceConnection(name: string, tenantId: string, subscriptionId: string, scope?: string, ): Promise<string> {
+        let response = await this.serviceConnectionClient.createAzureServiceConnection(name, tenantId, subscriptionId, scope);
         let endpointId = response.id;
         await this.waitForEndpointToBeReady(endpointId);
         await this.serviceConnectionClient.authorizeEndpointForAllPipelines(endpointId)

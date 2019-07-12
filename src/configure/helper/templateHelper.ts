@@ -1,11 +1,12 @@
 import * as fs from 'fs';
+import * as Mustache from 'mustache';
 import * as path from 'path';
-import Q = require('q');
+import * as Q from 'q';
 
-import { TargetResourceType, PipelineTemplate } from '../model/models';
+import { PipelineTemplate, TargetResourceType, WizardInputs } from '../model/models';
 
 export async function analyzeRepoAndListAppropriatePipeline(repoPath: string): Promise<PipelineTemplate[]> {
-    // TO-DO: To populate the possible pipelines on the basis of azure target resource.
+    // TO-DO: To populate the possible templates on the basis of azure target resource.
     let analysisResult = await analyzeRepo(repoPath);
 
     if (analysisResult.isNodeApplication) {
@@ -13,8 +14,23 @@ export async function analyzeRepoAndListAppropriatePipeline(repoPath: string): P
         return nodeTemplates;
     }
 
-    // add all possible pipelines as we could not detect the appropriate onesı
+    // add all possible templates as we could not detect the appropriate onesı
     return nodeTemplates;
+}
+
+export async function renderContent(templateFilePath: string, context: WizardInputs): Promise<string> {
+    let deferred: Q.Deferred<string> = Q.defer();
+    fs.readFile(templateFilePath, { encoding: "utf8" }, async (error, data) => {
+        if (error) {
+            throw new Error(error.message);
+        }
+        else {
+            let fileContent = Mustache.render(data, context);
+            deferred.resolve(fileContent);
+        }
+    });
+
+    return deferred.promise;
 }
 
 async function analyzeRepo(repoPath: string): Promise<{ isNodeApplication: boolean }> {
@@ -41,31 +57,31 @@ function isNodeRepo(files: string[]): boolean {
 const nodeTemplates: Array<PipelineTemplate> = [
     {
         label: 'Node.js with npm',
-        path: path.join(path.dirname(path.dirname(__dirname)), 'configure/pipelines/nodejs.yml'),
+        path: path.join(path.dirname(path.dirname(__dirname)), 'configure/templates/nodejs.yml'),
         language: 'node',
         targetType: TargetResourceType.WindowsWebApp
     },
     {
         label: 'Node.js with Gulp',
-        path: path.join(path.dirname(path.dirname(__dirname)), 'configure/pipelines/nodejsWithGulp.yml'),
+        path: path.join(path.dirname(path.dirname(__dirname)), 'configure/templates/nodejsWithGulp.yml'),
         language: 'node',
         targetType: TargetResourceType.WindowsWebApp
     },
     {
         label: 'Node.js with Grunt',
-        path: path.join(path.dirname(path.dirname(__dirname)), 'configure/pipelines/nodejsWithGrunt.yml'),
+        path: path.join(path.dirname(path.dirname(__dirname)), 'configure/templates/nodejsWithGrunt.yml'),
         language: 'node',
         targetType: TargetResourceType.WindowsWebApp
     },
     {
         label: 'Node.js with Angular',
-        path: path.join(path.dirname(path.dirname(__dirname)), 'configure/pipelines/nodejsWithAngular.yml'),
+        path: path.join(path.dirname(path.dirname(__dirname)), 'configure/templates/nodejsWithAngular.yml'),
         language: 'node',
         targetType: TargetResourceType.WindowsWebApp
     },
     {
         label: 'Node.js with Webpack',
-        path: path.join(path.dirname(path.dirname(__dirname)), 'configure/pipelines/nodejsWithWebpack.yml'),
+        path: path.join(path.dirname(path.dirname(__dirname)), 'configure/templates/nodejsWithWebpack.yml'),
         language: 'node',
         targetType: TargetResourceType.WindowsWebApp
     }

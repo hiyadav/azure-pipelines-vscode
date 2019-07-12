@@ -12,6 +12,7 @@ export class AzureDevOpsClient {
     private serviceClient: ServiceClient;
     private organizationMap: [Organization];
     private listOrgPromise: Promise<Organization[]>;
+    private lastAccessedOrganization: Organization;
 
     constructor(credentials: ServiceClientCredentials) {
         this.serviceClient = new ServiceClient(credentials);
@@ -37,7 +38,8 @@ export class AzureDevOpsClient {
                     method: "GET",
                     queryParameters: {
                         "memberId": connectionData.authenticatedUser.id,
-                        "api-version": "5.0"
+                        "api-version": "5.0",
+                        "properties": "Microsoft.VisualStudio.Services.Account.ServiceUrl.00025394-6065-48ca-87d9-7f5672854ef7"
                     },
                     deserializationMapper: null,
                     serializationMapper: null
@@ -49,8 +51,8 @@ export class AzureDevOpsClient {
     }
 
     public async listProjects(organizationName: string): Promise<any> {
-        return this.serviceClient.sendRequest<any>(<UrlBasedRequestPrepareOptions>{
-            url: this.getBaseOrgUrl(organizationName, "projects") + `/_apis/projects`,
+        let response = await this.serviceClient.sendRequest<any>(<UrlBasedRequestPrepareOptions>{
+            url: this.getBaseOrgUrl(organizationName, "tfs") + `/_apis/projects`,
             headers: {
                 "Content-Type": "application/json"
             },
@@ -61,11 +63,13 @@ export class AzureDevOpsClient {
             deserializationMapper: null,
             serializationMapper: null
         });
+
+        return response.value;
     }
 
-    public async getRepositoryDetails(organizationName: string, projectName: string, repositoryName: string): Promise<any> {
-        return this.serviceClient.sendRequest<any>(<UrlBasedRequestPrepareOptions>{
-            url: this.getBaseOrgUrl(organizationName, 'repository') + `/${projectName}/_apis/git/repositories/${repositoryName}`,
+    public async getRepositoryId(organizationName: string, projectName: string, repositoryName: string): Promise<string> {
+        let repositoryDetails = await this.serviceClient.sendRequest<any>(<UrlBasedRequestPrepareOptions>{
+            url: this.getBaseOrgUrl(organizationName, 'tfs') + `/${projectName}/_apis/git/repositories/${repositoryName}`,
             headers: {
                 "Content-Type": "application/json",
             },
@@ -76,11 +80,13 @@ export class AzureDevOpsClient {
             deserializationMapper: null,
             serializationMapper: null
         });
+
+        return repositoryDetails.id;
     }
 
     public async createAndRunPipeline(inputs: WizardInputs): Promise<any> {
         return await this.serviceClient.sendRequest<any>(<UrlBasedRequestPrepareOptions>{
-            url: Mustache.render(this.getBaseOrgUrl(inputs.organizationName, 'pipelines') + "/_apis/Contribution/HierarchyQuery", inputs),
+            url: Mustache.render(this.getBaseOrgUrl(inputs.organizationName, 'tfs') + "/_apis/Contribution/HierarchyQuery", inputs),
             headers: {
                 "Accept": "application/json;api-version=5.0-preview.1;excludeUrls=true;enumsAsNumbers=true;msDateFormat=true;noArrayWrap=true",
                 "Content-Type": "application/json"
@@ -98,7 +104,7 @@ export class AzureDevOpsClient {
                         "repositoryName": inputs.sourceRepository.repositoryName,
                         "branch": inputs.sourceRepository.branch,
                         "sourceBranch": inputs.sourceRepository.branch,
-                        "path": inputs.pipelineParameters.checkedInPipelineFileRelativePath,
+                        "path": inputs.pipelineParameters.pipelineFilePath,
                         "queue": "Hosted Ubuntu 1604",
                         "commitId": inputs.sourceRepository.commitId,
                         "commitDescriptorName": "Set up CI/CD with Azure Pipelines",
@@ -122,11 +128,11 @@ export class AzureDevOpsClient {
             });
         }
 
-        if (this.lastAccessedOrganization && this.lastAccessedOrganization.accountUri.startsWith("https://vssps.dev.azure.com:443")) {
-            return utils.format(AzureDevOpsClient.newOrganizationUrl, organizationName);
+        switch (service) {
+            case "tfs":
+            default:
+                return this.lastAccessedOrganization.properties["Microsoft.VisualStudio.Services.Account.ServiceUrl.00025394-6065-48ca-87d9-7f5672854ef7"];
         }
-
-        return utils.format(AzureDevOpsClient.oldOrganizationUrl, organizationName);
     }
 
     private getConnectionData(): Promise<any> {
@@ -140,9 +146,4 @@ export class AzureDevOpsClient {
             serializationMapper: null
         });
     }
-
-    private static newOrganizationUrl = "https://dev.azure.com/%s/";
-    private static oldOrganizationUrl = "https://%s.visualstudio.com/";
-
-    private lastAccessedOrganization: Organization;
 }

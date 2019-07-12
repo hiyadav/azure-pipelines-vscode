@@ -3,12 +3,12 @@ import { ServiceClientCredentials } from 'ms-rest';
 
 import { AzureResourceClient } from './azureResourceClient';
 import { Messages } from '../../messages';
-import { WebAppKind, QuickPickItemWithData } from '../../model/models';
+import { WebAppKind } from '../../model/models';
 
 export class AppServiceClient extends AzureResourceClient {
 
     private static apiVersion = '2019-05-01';
-    private static resourceType = Messages.webAppResourceType;
+    private static resourceType = 'Microsoft.Web/sites';
     constructor(credentials: ServiceClientCredentials, subscriptionId: string) {
         super(credentials, subscriptionId);
     }
@@ -21,7 +21,7 @@ export class AppServiceClient extends AzureResourceClient {
         return await this.getResource(resourceId, AppServiceClient.apiVersion);
     }
 
-    public async GetAppServices(filterForResourceKind: WebAppKind): Promise<QuickPickItemWithData[]> {
+    public async GetAppServices(filterForResourceKind: WebAppKind): Promise<ResourceListResult> {
         let resourceList: ResourceListResult = await this.getResourceList(AppServiceClient.resourceType);
 
         if (!!filterForResourceKind) {
@@ -35,11 +35,6 @@ export class AppServiceClient extends AzureResourceClient {
             resourceList = filteredResourceList;
         }
 
-        return resourceList.map((resource) => {
-            return <QuickPickItemWithData>{
-                label: resource.name,
-                data: resource
-            };
-        });
+        return resourceList;
     }
 }

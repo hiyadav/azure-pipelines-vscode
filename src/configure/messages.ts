@@ -2,7 +2,6 @@ export class Messages {
     public static addYmlFile: string = 'Add yml file to workspace';
     public static analyzingRepo: string = 'Analyzing your repo';
     public static appKindIsNotSupported: string = 'App of kind: %s is not yet supported.';
-    public static azureAccountExntesionName: string = 'ms-vscode.azure-account';
     public static azureAccountExntesionUnavailable: string = 'Azure-Account extension could not be fetched. Kindly check it is installed and activated.';
     public static azureLoginRequired: string = 'Kindly log-in to Azure Account extension before going forward.';
     public static branchRemoteMissing: string = `The branch: %s does not have any tracking branch. Also the repositoy has either more than one remotes or no remotes. Hence, we are unable to create a remote tracking branch. Kindly, create a remote tracking branch to procceed.`;
@@ -10,7 +9,6 @@ export class Messages {
     public static cannotAddFileRemoteMissing: string = 'Cannot add yml file to your git repository, remote is not set';
     public static cannotIdentifyRespositoryDetails: string = 'Could not identify repository details. Ensure your git repo is managed with Azure Repos or Github';
     public static commitAndPush: string = 'Commit & Push';
-    public static configurePipelinesCommandName: string = 'configure-pipeline';
     public static configuringPipelineAndDeployment: string = 'Configuring Azure DevOps Pipeline and proceeding to deployment...';
     public static couldNotAuthorizeEndpoint: string = 'Could not authorize endpoint for use in Pipelines.';
     public static creatingAzureServiceConnection: string = 'Connecting azure pipelines with your subscription: %s';
@@ -33,5 +31,4 @@ export class Messages {
     public static selectWebApp: string = 'Select Web App';
     public static unableToCreateAzureServiceConnection: string = `Unable to create azure service connection.\nOperation Status: %s\nMessage: %s\nService connection is not in ready state.`;
     public static unableToCreateGitHubServiceConnection: string =`Unable to create azure service connection.\nOperation Status: %s\nService connection is not in ready state.`;
-    public static webAppResourceType: string = 'Microsoft.Web/sites';
 }

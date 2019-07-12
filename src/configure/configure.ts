@@ -27,6 +27,7 @@ export async function configurePipeline(node: any) {
     }
     catch (error) {
         // log error in telemetery.
+        extensionVariables.outputChannel.appendLine(error.message);
         vscode.window.showErrorMessage(error.message);
     }
 }
@@ -147,7 +148,7 @@ class PipelineConfigurer {
         let azureResource: GenericResource = await this.appServiceClient.getAppServiceResource((<AzureTreeItem>node).fullId);
 
         switch (azureResource.type.toLowerCase()) {
-            case Messages.webAppResourceType.toLowerCase():
+            case 'Microsoft.Web/sites'.toLowerCase():
                 switch (azureResource.kind) {
                     case WebAppKind.WindowsApp:
                         this.inputs.targetResource.resource = azureResource;
@@ -244,17 +245,17 @@ class PipelineConfigurer {
     }
 
     private async checkInPipelineFileToRepository() {
-        this.inputs.pipelineParameters.checkedInPipelineFileRelativePath = await this.sourceRepositoryService.addYmlFileToRepo(
+        this.inputs.pipelineParameters.pipelineFilePath = await this.sourceRepositoryService.addYmlFileToRepo(
             this.inputs.pipelineParameters.pipelineTemplate.path,
             this.inputs.sourceRepository.localPath, this.inputs);
 
-        await vscode.window.showTextDocument(vscode.Uri.file(path.join(this.inputs.sourceRepository.localPath, this.inputs.pipelineParameters.checkedInPipelineFileRelativePath)));
+        await vscode.window.showTextDocument(vscode.Uri.file(path.join(this.inputs.sourceRepository.localPath, this.inputs.pipelineParameters.pipelineFilePath)));
         await vscode.window.showInformationMessage(Messages.modifyAndCommitFile, Messages.commitAndPush, Messages.discardPipeline)
             .then((commitOrDiscard: string) => {
                 if (commitOrDiscard.toLowerCase() === Messages.commitAndPush.toLowerCase()) {
                     return vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: Messages.configuringPipelineAndDeployment }, async (progress) => {
                         // handle when the branch is not upto date with remote branch and push fails
-                        let commitDetails = await this.sourceRepositoryService.commitAndPushPipelineFile(this.inputs.pipelineParameters.checkedInPipelineFileRelativePath);
+                        let commitDetails = await this.sourceRepositoryService.commitAndPushPipelineFile(this.inputs.pipelineParameters.pipelineFilePath);
                         this.inputs.sourceRepository.branch = commitDetails.branch;
                         this.inputs.sourceRepository.commitId = commitDetails.commitId;
                     });
