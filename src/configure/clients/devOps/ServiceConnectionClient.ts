@@ -1,4 +1,5 @@
 import { UrlBasedRequestPrepareOptions } from 'ms-rest';
+import * as utils from 'util';
 
 import { AzureDevOpsClient } from './azureDevOpsClient';
 
@@ -7,6 +8,7 @@ export class ServiceConnectionClient {
     private azureDevOpsClient: AzureDevOpsClient;
     private organizationName: string;
     private projectName: string;
+    private static apiversion = "5.1-preview.2";
 
     constructor(organizationName: string, projectName: string, azureDevOpsClient: AzureDevOpsClient) {
         this.azureDevOpsClient = azureDevOpsClient;
@@ -20,7 +22,7 @@ export class ServiceConnectionClient {
                 url: this.azureDevOpsClient.getBaseOrgUrl(this.organizationName, ServiceConnectionClient.serviceType) + `/${this.projectName}/_apis/serviceendpoint/endpoints`,
                 headers: {
                     "Content-Type": "application/json",
-                    "Accept": "application/json;api-version=5.1-preview.2;excludeUrls=true"
+                    "Accept": utils.format("application/json;api-version=;excludeUrls=true", ServiceConnectionClient.apiversion)
                 },
                 method: "POST",
                 body: {
@@ -93,7 +95,7 @@ export class ServiceConnectionClient {
             url: this.azureDevOpsClient.getBaseOrgUrl(this.organizationName, ServiceConnectionClient.serviceType) + `/${this.projectName}/_apis/serviceendpoint/endpoints/${endpointId}`,
             headers: {
                 "Content-Type": "application/json",
-                "Accept": "application/json;api-version=5.1-preview.2;excludeUrls=true"
+                "Accept": "application/json;api-version=%s;excludeUrls=true"
             },
             method: "Get",
             deserializationMapper: null,
@@ -106,7 +108,7 @@ export class ServiceConnectionClient {
             url: this.azureDevOpsClient.getBaseOrgUrl(this.organizationName, ServiceConnectionClient.serviceType) + `${this.projectName}/_apis/pipelines/pipelinePermissions/endpoint/${endpointId}`,
             headers: {
                 "Content-Type": "application/json",
-                "Accept": "application/json;api-version=5.1-preview.1;excludeUrls=true;enumsAsNumbers=true;msDateFormat=true;noArrayWrap=true"
+                "Accept": "application/json;api-version=5.1-preview.1;"
             },
             method: "PATCH",
             body: {
