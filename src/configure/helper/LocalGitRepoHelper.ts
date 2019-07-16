@@ -17,7 +17,7 @@ export class LocalGitRepoHelper {
     private constructor() {
     }
 
-    public static GetSourceRepositoryService(repositoryPath: string): LocalGitRepoHelper {
+    public static GetHelperInstance(repositoryPath: string): LocalGitRepoHelper {
         var repoService = new LocalGitRepoHelper();
         repoService.initialize(repositoryPath);
         return repoService;

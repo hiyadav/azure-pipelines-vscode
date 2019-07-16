@@ -8,13 +8,13 @@ import { QuickPickItem } from 'vscode';
 
 import { Messages } from './messages';
 import { SourceOptions, RepositoryProvider, extensionVariables, WizardInputs, WebAppKind, PipelineTemplate, QuickPickItemWithData } from './model/models';
-import { AzureDevOpsService } from './services/devOps/azureDevOpsService';
-import { SourceRepositoryService } from './services/source/sourceRepositoryService';
-import { analyzeRepoAndListAppropriatePipeline } from './utility/pipelineHelper';
+import { AzureDevOpsClient } from './clients/devOps/azureDevOpsClient';
 import { exit } from 'process';
-import { ServiceConnectionHelper } from './services/devOps/serviceConnection';
-import { AzureDevOpsFactory } from './azureDevOpsFactory';
+import { ServiceConnectionHelper } from './helper/devOps/serviceConnectionHelper';
+import { AzureDevOpsHelper } from './helper/devOps/azureDevOpsHelper';
 import { AppServiceClient } from './clients/azure/appServiceClient';
+import { LocalGitRepoHelper } from './helper/LocalGitRepoHelper';
+import * as templateHelper from './helper/templateHelper';
 
 export async function configurePipeline(node: any) {
     try {
@@ -34,27 +34,25 @@ export async function configurePipeline(node: any) {
 
 class PipelineConfigurer {
     private inputs: WizardInputs;
-    private sourceRepositoryService: SourceRepositoryService;
-    private azureDevOpsService: AzureDevOpsService;
-    private connectionService: ServiceConnectionHelper;
-    private azureDevOpsFactory: AzureDevOpsFactory;
+    private localGitRepoHelper: LocalGitRepoHelper;
+    private azureDevOpsClient: AzureDevOpsClient;
+    private serviceConnectionHelper: ServiceConnectionHelper;
     private appServiceClient: AppServiceClient;
     private workspacePath: string;
 
     public constructor() {
         this.inputs = new WizardInputs();
         this.inputs.azureSession = extensionVariables.azureAccountExtensionApi.sessions[0];
-        this.azureDevOpsFactory = new AzureDevOpsFactory(this.inputs.azureSession.credentials);
-        this.azureDevOpsService = this.azureDevOpsFactory.getAzureDevOpsService();
+        this.azureDevOpsClient = new AzureDevOpsClient(this.inputs.azureSession.credentials);
     }
 
     public async configure(node: any) {
         await this.getAllRequiredInputs(node);
-        let queuedPipelineUrl = await this.azureDevOpsService.createAndRunPipeline(this.inputs);
+        let queuedPipelineUrl = await this.azureDevOpsClient.createAndRunPipeline(this.inputs);
         vscode.window.showInformationMessage(Messages.pipelineSetupSuccessfully, Messages.browsePipeline)
             .then((action: string) => {
                 if (action && action.toLowerCase() === Messages.browsePipeline.toLowerCase()) {
-                    vscode.env.openExternal(vscode.Uri.parse(queuedPipelineUrl));
+                    vscode.env.openExternal(vscode.Uri.parse(queuedPipelineUrl.dataProviders["ms.vss-build-web.create-and-run-pipeline-data-provider"].pipelineBuildWebUrl));
                 }
             });
     }
@@ -127,14 +125,14 @@ class PipelineConfigurer {
     }
 
     private async getGitDetailsFromRepository(workspacePath: string): Promise<void> {
-        this.sourceRepositoryService = SourceRepositoryService.GetSourceRepositoryService(workspacePath);
-        this.inputs.sourceRepository = await this.sourceRepositoryService.getGitRepoDetails(workspacePath);
+        this.localGitRepoHelper = LocalGitRepoHelper.GetHelperInstance(workspacePath);
+        this.inputs.sourceRepository = await this.localGitRepoHelper.getGitRepoDetails(workspacePath);
 
         if (this.inputs.sourceRepository.repositoryProvider === RepositoryProvider.AzureRepos) {
-            let orgAndProjectName = AzureDevOpsService.getOrganizationAndProjectNameFromRepositoryUrl(this.inputs.sourceRepository.remoteUrl);
+            let orgAndProjectName = AzureDevOpsHelper.getOrganizationAndProjectNameFromRepositoryUrl(this.inputs.sourceRepository.remoteUrl);
             this.inputs.organizationName = orgAndProjectName.orgnizationName;
             this.inputs.projectName = orgAndProjectName.projectName;
-            this.azureDevOpsService.getRepositoryId(this.inputs.organizationName, this.inputs.projectName, this.inputs.sourceRepository.repositoryName)
+            this.azureDevOpsClient.getRepositoryId(this.inputs.organizationName, this.inputs.projectName, this.inputs.sourceRepository.repositoryName)
                 .then((repositoryId) => {
                     this.inputs.sourceRepository.repositoryId = repositoryId;
                 });
@@ -167,20 +165,25 @@ class PipelineConfigurer {
 
     private async getAzureDevOpsDetails(): Promise<void> {
         if (!this.inputs.organizationName) {
-            let selectedOrganization = await extensionVariables.ui.showQuickPick(this.azureDevOpsService.listOrganizations(), { placeHolder: Messages.selectOrganization });
+            let selectedOrganization = await extensionVariables.ui.showQuickPick(
+                this.azureDevOpsClient.listOrganizations().then((orgs) => orgs.map(x => { return { label: x.accountName }; })),
+                { placeHolder: Messages.selectOrganization });
             this.inputs.organizationName = selectedOrganization.label;
         }
 
         if (!this.inputs.projectName) {
-            let selectedProject = await extensionVariables.ui.showQuickPick(this.azureDevOpsService.listProjects(this.inputs.organizationName), { placeHolder: Messages.selectProject });
+            let selectedProject = await extensionVariables.ui.showQuickPick(
+                this.azureDevOpsClient.listProjects(this.inputs.organizationName).then((projects) => projects.map(x => {return {label: x.name};})),
+                { placeHolder: Messages.selectProject });
             this.inputs.projectName = selectedProject.label;
         }
     }
 
     private async getSelectedPipeline(): Promise<void> {
-        let appropriatePipelines: PipelineTemplate[] = await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: Messages.analyzingRepo }, () => {
-            return analyzeRepoAndListAppropriatePipeline(this.inputs.sourceRepository.localPath);
-        });
+        let appropriatePipelines: PipelineTemplate[] = await vscode.window.withProgress(
+            { location: vscode.ProgressLocation.Notification, title: Messages.analyzingRepo }, 
+            () => templateHelper.analyzeRepoAndListAppropriatePipeline(this.inputs.sourceRepository.localPath)
+        );
 
         // TO:DO- Get applicable pipelines for the repo type and azure target type if target already selected
         let selectedOption = await extensionVariables.ui.showQuickPick(appropriatePipelines.map((pipeline) => { return { label: pipeline.label }; }), {
@@ -205,13 +208,15 @@ class PipelineConfigurer {
 
         // show available resources and get the chosen one
         this.appServiceClient = new AppServiceClient(extensionVariables.azureAccountExtensionApi.sessions[0].credentials, this.inputs.targetResource.subscriptionId);
-        let selectedResource: QuickPickItemWithData = await extensionVariables.ui.showQuickPick(this.appServiceClient.GetAppServices(WebAppKind.WindowsApp), { placeHolder: Messages.selectWebApp });
+        let selectedResource: QuickPickItemWithData = await extensionVariables.ui.showQuickPick(
+            this.appServiceClient.GetAppServices(WebAppKind.WindowsApp).then((webApps) => webApps.map(x => {return {label: x.name, data: x};})),
+            { placeHolder: Messages.selectWebApp });
         this.inputs.targetResource.resource = selectedResource.data;
     }
 
     private async getGitubConnectionService(): Promise<void> {
-        if (!this.connectionService) {
-            this.connectionService = this.azureDevOpsFactory.getServiceConnectionHelper(this.inputs.organizationName, this.inputs.projectName);
+        if (!this.serviceConnectionHelper) {
+            this.serviceConnectionHelper = new ServiceConnectionHelper(this.inputs.organizationName, this.inputs.projectName, this.azureDevOpsClient);
         }
 
         let githubPat = await extensionVariables.ui.showInputBox({ placeHolder: Messages.enterGitHubPat });
@@ -221,7 +226,7 @@ class PipelineConfigurer {
                 title: Messages.creatingGitHubServiceConnection
             },
             () => {
-                return this.connectionService.createGitHubServiceConnection(githubPat, this.inputs.sourceRepository.repositoryName)
+                return this.serviceConnectionHelper.createGitHubServiceConnection(this.inputs.sourceRepository.repositoryName, githubPat)
                     .then((serviceConnectionId) => {
                         this.inputs.sourceRepository.serviceConnectionId = serviceConnectionId;
                     });
@@ -229,8 +234,8 @@ class PipelineConfigurer {
     }
 
     private async createAzureRMServiceConnection(): Promise<void> {
-        if (!this.connectionService) {
-            this.connectionService = this.azureDevOpsFactory.getServiceConnectionHelper(this.inputs.organizationName, this.inputs.projectName);
+        if (!this.serviceConnectionHelper) {
+            this.serviceConnectionHelper = new ServiceConnectionHelper(this.inputs.organizationName, this.inputs.projectName, this.azureDevOpsClient);
         }
         // TODO: show notification while setup is being done.
         // ?? should SPN created be scoped to resource group of target azure resource.
@@ -240,14 +245,15 @@ class PipelineConfigurer {
                 title: utils.format(Messages.creatingAzureServiceConnection, this.inputs.targetResource.subscriptionId)
             },
             () => {
-                return this.connectionService.createAzureServiceConnection(this.inputs.targetResource.resource.name, this.inputs.azureSession.tenantId, this.inputs.targetResource.subscriptionId);
+                return this.serviceConnectionHelper.createAzureServiceConnection(this.inputs.targetResource.resource.name, this.inputs.azureSession.tenantId, this.inputs.targetResource.subscriptionId);
             });
     }
 
     private async checkInPipelineFileToRepository() {
-        this.inputs.pipelineParameters.pipelineFilePath = await this.sourceRepositoryService.addYmlFileToRepo(
-            this.inputs.pipelineParameters.pipelineTemplate.path,
-            this.inputs.sourceRepository.localPath, this.inputs);
+        this.inputs.pipelineParameters.pipelineFilePath = await this.localGitRepoHelper.addContentToFile(
+            await templateHelper.renderContent(this.inputs.pipelineParameters.pipelineTemplate.path, this.inputs),
+            await LocalGitRepoHelper.GetAvailableFileName("azure-pipelines.yml", this.inputs.sourceRepository.localPath),
+            this.inputs.sourceRepository.localPath);
 
         await vscode.window.showTextDocument(vscode.Uri.file(path.join(this.inputs.sourceRepository.localPath, this.inputs.pipelineParameters.pipelineFilePath)));
         await vscode.window.showInformationMessage(Messages.modifyAndCommitFile, Messages.commitAndPush, Messages.discardPipeline)
@@ -255,7 +261,7 @@ class PipelineConfigurer {
                 if (commitOrDiscard.toLowerCase() === Messages.commitAndPush.toLowerCase()) {
                     return vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: Messages.configuringPipelineAndDeployment }, async (progress) => {
                         // handle when the branch is not upto date with remote branch and push fails
-                        let commitDetails = await this.sourceRepositoryService.commitAndPushPipelineFile(this.inputs.pipelineParameters.pipelineFilePath);
+                        let commitDetails = await this.localGitRepoHelper.commitAndPushPipelineFile(this.inputs.pipelineParameters.pipelineFilePath);
                         this.inputs.sourceRepository.branch = commitDetails.branch;
                         this.inputs.sourceRepository.commitId = commitDetails.commitId;
                     });

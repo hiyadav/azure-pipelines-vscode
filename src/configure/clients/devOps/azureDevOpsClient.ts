@@ -1,5 +1,4 @@
 import Mustache = require('mustache');
-import * as utils from 'util';
 
 import { ServiceClientCredentials, ServiceClient, UrlBasedRequestPrepareOptions } from 'ms-rest';
 
@@ -51,8 +50,9 @@ export class AzureDevOpsClient {
     }
 
     public async listProjects(organizationName: string): Promise<any> {
+        let url = this.getBaseOrgUrl(organizationName, "tfs") + `/_apis/projects`;
         let response = await this.serviceClient.sendRequest<any>(<UrlBasedRequestPrepareOptions>{
-            url: this.getBaseOrgUrl(organizationName, "tfs") + `/_apis/projects`,
+            url: url,
             headers: {
                 "Content-Type": "application/json"
             },
@@ -131,7 +131,7 @@ export class AzureDevOpsClient {
         switch (service) {
             case "tfs":
             default:
-                return this.lastAccessedOrganization.properties["Microsoft.VisualStudio.Services.Account.ServiceUrl.00025394-6065-48ca-87d9-7f5672854ef7"];
+                return this.lastAccessedOrganization.properties["Microsoft.VisualStudio.Services.Account.ServiceUrl.00025394-6065-48ca-87d9-7f5672854ef7"]["$value"];
         }
     }
 
