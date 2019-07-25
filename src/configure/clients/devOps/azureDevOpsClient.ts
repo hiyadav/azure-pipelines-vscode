@@ -1,15 +1,17 @@
 import Mustache = require('mustache');
+import * as util from 'util';
 
 import { ServiceClientCredentials, ServiceClient, UrlBasedRequestPrepareOptions } from 'ms-rest';
 
 import { Organization, WizardInputs } from '../../model/models';
+import { sleepForMilliSeconds } from "../../helper/commonHelper";
+import { Messages } from '../../messages';
 
 // TO-DO: add handling failure cases
 // either throw here or analyze in the calling service layer for any errors;
 // for the second declare a model
 export class AzureDevOpsClient {
     private serviceClient: ServiceClient;
-    private organizationMap: [Organization];
     private listOrgPromise: Promise<Organization[]>;
     private lastAccessedOrganization: Organization;
 
@@ -22,12 +24,62 @@ export class AzureDevOpsClient {
         return this.serviceClient.sendRequest(urlBasedRequestPrepareOptions);
     }
 
-    public async listOrganizations(): Promise<Organization[]> {
-        if (this.organizationMap || this.listOrgPromise) {
-            return this.organizationMap ? this.organizationMap : this.listOrgPromise;
-        }
+    public async createOrganization(organizationName: string): Promise<any> {
+        return this.serviceClient.sendRequest<any>(<UrlBasedRequestPrepareOptions>{
+            url: "https://app.vsaex.visualstudio.com/_apis/HostAcquisition/collections",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            method: "POST",
+            queryParameters: {
+                "collectionName": organizationName,
+                "api-version": "4.0-preview.1",
+                "preferredRegion": "CUS"
+            },
+            body: {
+                "VisualStudio.Services.HostResolution.UseCodexDomainForHostCreation": "true"
+            },
+            deserializationMapper: null,
+            serializationMapper: null
+        });
+    }
 
-        let listOrganizaitonResponse = await this.getConnectionData()
+    public async createProject(organizationName: string, projectName: string): Promise<any> {
+        let collectionUrl = `https://dev.azure.com/${organizationName}`;
+
+        return this.serviceClient.sendRequest<any>(<UrlBasedRequestPrepareOptions>{
+            url: `${collectionUrl}/_apis/projects`,
+            headers: {
+                "Content-Type": "application/json"
+            },
+            method: "POST",
+            queryParameters: {
+                "api-version": "5.0"
+            },
+            body: {
+                "name": projectName,
+                "visibility": 0,
+                "capabilities": {
+                    "versioncontrol": {"sourceControlType": "Git" },
+                    "processTemplate": { "templateTypeId": "adcc42ab-9882-485e-a3ed-7678f01f66bc" }
+                }
+            },
+            deserializationMapper: null,
+            serializationMapper: null
+        })
+        .then((operation) => {
+            if(operation.url) {
+                return this.monitorOperationStatus(operation.url, "5.0");
+            }
+            else {
+                throw new Error(util.format(Messages.failedToCreateAzureDevOpsProject, operation.message));
+            }
+        });
+    }
+
+    public async listOrganizations(forceRefresh?: boolean): Promise<Organization[]> {
+        if (!this.listOrgPromise || forceRefresh) {
+            this.listOrgPromise = this.getConnectionData()
             .then((connectionData) => {
                 return this.serviceClient.sendRequest<any>(<UrlBasedRequestPrepareOptions>{
                     url: "https://app.vssps.visualstudio.com/_apis/accounts",
@@ -43,14 +95,16 @@ export class AzureDevOpsClient {
                     deserializationMapper: null,
                     serializationMapper: null
                 });
-            });
+            })
+            .then((organizations) => organizations.value);
+        }
 
-        this.organizationMap = listOrganizaitonResponse.value;
-        return this.organizationMap;
+        return this.listOrgPromise;
     }
 
     public async listProjects(organizationName: string): Promise<any> {
-        let url = this.getBaseOrgUrl(organizationName, "tfs") + `/_apis/projects`;
+        let url = await this.getBaseOrgUrl(organizationName, "tfs");
+        url = url + `/_apis/projects`;
         let response = await this.serviceClient.sendRequest<any>(<UrlBasedRequestPrepareOptions>{
             url: url,
             headers: {
@@ -68,8 +122,11 @@ export class AzureDevOpsClient {
     }
 
     public async getRepositoryId(organizationName: string, projectName: string, repositoryName: string): Promise<string> {
+        let url = await this.getBaseOrgUrl(organizationName, 'tfs');
+        url = `${url}/${projectName}/_apis/git/repositories/${repositoryName}`;
+
         let repositoryDetails = await this.serviceClient.sendRequest<any>(<UrlBasedRequestPrepareOptions>{
-            url: this.getBaseOrgUrl(organizationName, 'tfs') + `/${projectName}/_apis/git/repositories/${repositoryName}`,
+            url: url,
             headers: {
                 "Content-Type": "application/json",
             },
@@ -85,8 +142,11 @@ export class AzureDevOpsClient {
     }
 
     public async createAndRunPipeline(inputs: WizardInputs): Promise<any> {
+        let url = await this.getBaseOrgUrl(inputs.organizationName, "tfs");
+        url = `${url}/_apis/Contribution/HierarchyQuery`;
+
         return await this.serviceClient.sendRequest<any>(<UrlBasedRequestPrepareOptions>{
-            url: Mustache.render(this.getBaseOrgUrl(inputs.organizationName, 'tfs') + "/_apis/Contribution/HierarchyQuery", inputs),
+            url: url,
             headers: {
                 "Accept": "application/json;api-version=5.0-preview.1;excludeUrls=true;enumsAsNumbers=true;msDateFormat=true;noArrayWrap=true",
                 "Content-Type": "application/json"
@@ -121,9 +181,10 @@ export class AzureDevOpsClient {
         });
     }
 
-    public getBaseOrgUrl(organizationName: string, service: string): string {
+    public async getBaseOrgUrl(organizationName: string, service: string): Promise<string> {
         if (!this.lastAccessedOrganization || this.lastAccessedOrganization.accountName !== organizationName) {
-            this.lastAccessedOrganization = this.organizationMap.find((element) => {
+            let organizations = await this.listOrgPromise;
+            this.lastAccessedOrganization = organizations.find((element) => {
                 return element.accountName === organizationName;
             });
         }
@@ -140,6 +201,40 @@ export class AzureDevOpsClient {
             url: "https://app.vssps.visualstudio.com/_apis/connectiondata",
             headers: {
                 "Content-Type": "application/json"
+            },
+            method: "GET",
+            deserializationMapper: null,
+            serializationMapper: null
+        });
+    }
+
+    private async monitorOperationStatus(operationUrl: string, apiVersion: string): Promise<void> {
+        let retryCount = 0;
+        let operationResult: any;
+
+        while(retryCount < 20) {
+            operationResult = await this.getOperationResult(operationUrl, apiVersion);
+            let result = operationResult.status.toLowerCase();
+            if(result === "succeeded") {
+                return;
+            }
+            else if(result === "failed") {
+                throw new Error(util.format(Messages.failedToCreateAzureDevOpsProject, operationResult.detailedMessage));
+            }
+            else {
+                retryCount++;
+                await sleepForMilliSeconds(2000);
+            }
+        }
+        throw new Error(util.format(Messages.failedToCreateAzureDevOpsProject,
+            (operationResult && operationResult.detailedMessage) || Messages.operationTimedOut));
+    }
+
+    private async getOperationResult(operationUrl: string, apiVersion: string): Promise<any> {
+        return this.serviceClient.sendRequest<any>(<UrlBasedRequestPrepareOptions>{
+            url: operationUrl,
+            queryParameters: {
+                "api-version": apiVersion
             },
             method: "GET",
             deserializationMapper: null,

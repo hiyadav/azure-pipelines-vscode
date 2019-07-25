@@ -48,6 +48,8 @@ class PipelineConfigurer {
 
     public async configure(node: any) {
         await this.getAllRequiredInputs(node);
+        await this.createPreRequisites();
+        await this.checkInPipelineFileToRepository();
         let queuedPipelineUrl = await this.azureDevOpsClient.createAndRunPipeline(this.inputs);
         vscode.window.showInformationMessage(Messages.pipelineSetupSuccessfully, Messages.browsePipeline)
             .then((action: string) => {
@@ -63,16 +65,34 @@ class PipelineConfigurer {
         await this.getAzureDevOpsDetails();
         await this.getSelectedPipeline();
 
+        if (!this.inputs.targetResource.resource) {
+            await this.getAzureResourceDetails();
+        }
+    }
+
+    private async createPreRequisites(): Promise<void> {
+        if (this.inputs.isNewOrganization) {
+            let repoParts = this.inputs.sourceRepository.repositoryName.split("/");
+            this.inputs.projectName = repoParts[repoParts.length-1] || "VSCode-AzurePipelines";
+            await vscode.window.withProgress(
+                {
+                    location: vscode.ProgressLocation.Notification,
+                    title: Messages.creatingAzureDevOpsOrganization
+                },
+                () => {
+                    return this.azureDevOpsClient.createOrganization(this.inputs.organizationName)
+                        .then(() => {
+                            this.azureDevOpsClient.listOrganizations(true);
+                            return this.azureDevOpsClient.createProject(this.inputs.organizationName, this.inputs.projectName)
+                        });
+                });
+        }
+
         if (this.inputs.sourceRepository.repositoryProvider === RepositoryProvider.Github) {
             await this.getGitubConnectionService();
         }
 
-        if (!this.inputs.targetResource.resource) {
-            await this.getAzureResourceDetails();
-        }
-
         await this.createAzureRMServiceConnection();
-        await this.checkInPipelineFileToRepository();
     }
 
 
@@ -125,7 +145,7 @@ class PipelineConfigurer {
     }
 
     private async getGitDetailsFromRepository(workspacePath: string): Promise<void> {
-        this.localGitRepoHelper = LocalGitRepoHelper.GetHelperInstance(workspacePath);
+        this.localGitRepoHelper = await LocalGitRepoHelper.GetHelperInstance(workspacePath);
         this.inputs.sourceRepository = await this.localGitRepoHelper.getGitRepoDetails(workspacePath);
 
         if (this.inputs.sourceRepository.repositoryProvider === RepositoryProvider.AzureRepos) {
@@ -165,13 +185,20 @@ class PipelineConfigurer {
 
     private async getAzureDevOpsDetails(): Promise<void> {
         if (!this.inputs.organizationName) {
-            let selectedOrganization = await extensionVariables.ui.showQuickPick(
-                this.azureDevOpsClient.listOrganizations().then((orgs) => orgs.map(x => { return { label: x.accountName }; })),
-                { placeHolder: Messages.selectOrganization });
-            this.inputs.organizationName = selectedOrganization.label;
+            this.inputs.isNewOrganization = false;
+            let devOpsOrganizations = await this.azureDevOpsClient.listOrganizations();
+            if(devOpsOrganizations && devOpsOrganizations.length > 0) {
+                let selectedOrganization = await extensionVariables.ui.showQuickPick(
+                    devOpsOrganizations.map(x => { return { label: x.accountName }; }), { placeHolder: Messages.selectOrganization });
+                this.inputs.organizationName = selectedOrganization.label;
+            }
+            else {
+                this.inputs.isNewOrganization = true;
+                this.inputs.organizationName = await extensionVariables.ui.showInputBox({placeHolder: Messages.enterAzureDevOpsOrganizationName});
+            }
         }
 
-        if (!this.inputs.projectName) {
+        if (!this.inputs.projectName && !this.inputs.isNewOrganization) {
             let selectedProject = await extensionVariables.ui.showQuickPick(
                 this.azureDevOpsClient.listProjects(this.inputs.organizationName).then((projects) => projects.map(x => {return {label: x.name};})),
                 { placeHolder: Messages.selectProject });

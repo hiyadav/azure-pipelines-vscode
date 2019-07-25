@@ -17,10 +17,16 @@ export class LocalGitRepoHelper {
     private constructor() {
     }
 
-    public static GetHelperInstance(repositoryPath: string): LocalGitRepoHelper {
-        var repoService = new LocalGitRepoHelper();
-        repoService.initialize(repositoryPath);
-        return repoService;
+    public static async GetHelperInstance(repositoryPath: string): Promise<LocalGitRepoHelper> {
+        try {
+            var repoService = new LocalGitRepoHelper();
+            repoService.initialize(repositoryPath);
+            await repoService.gitReference.status();
+            return repoService;
+        }
+        catch(error) {
+            throw new Error(Messages.notAGitRepository);
+        }
     }
 
     public static async GetAvailableFileName(fileName:string, repoPath: string): Promise<string> {

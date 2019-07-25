@@ -26,6 +26,7 @@ export interface  AzureAccountExtensionExports {
 
 export class WizardInputs {
     organizationName: string;
+    isNewOrganization: boolean;
     projectName: string;
     sourceRepository: GitRepositoryParameters;
     targetResource: AzureParameters = new AzureParameters();

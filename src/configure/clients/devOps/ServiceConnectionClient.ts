@@ -15,9 +15,12 @@ export class ServiceConnectionClient {
     }
 
     public async createGitHubServiceConnection(endpointName: string, gitHubPat: string) {
+        let url = await this.azureDevOpsClient.getBaseOrgUrl(this.organizationName, ServiceConnectionClient.serviceType);
+        url = `${url}/${this.projectName}/_apis/serviceendpoint/endpoints`;
+
         return this.azureDevOpsClient.sendRequest(<UrlBasedRequestPrepareOptions>
             {
-                url: this.azureDevOpsClient.getBaseOrgUrl(this.organizationName, ServiceConnectionClient.serviceType) + `/${this.projectName}/_apis/serviceendpoint/endpoints`,
+                url: url,
                 headers: {
                     "Content-Type": "application/json",
                     "Accept": "application/json;api-version=5.1-preview.2;excludeUrls=true"
@@ -45,8 +48,11 @@ export class ServiceConnectionClient {
     }
 
     public async createAzureServiceConnection(endpointName: string, tenantId: string, subscriptionId: string, scope?: string, ): Promise<any> {
+        let url = await this.azureDevOpsClient.getBaseOrgUrl(this.organizationName, ServiceConnectionClient.serviceType);
+        url = `${url}/${this.projectName}/_apis/serviceendpoint/endpoints`;
+
         return this.azureDevOpsClient.sendRequest(<UrlBasedRequestPrepareOptions>{
-            url: this.azureDevOpsClient.getBaseOrgUrl(this.organizationName, ServiceConnectionClient.serviceType) + `/${this.projectName}/_apis/serviceendpoint/endpoints`,
+            url: url,
             headers: {
                 "Content-Type": "application/json",
                 "Accept": "application/json;api-version=5.1-preview.2;excludeUrls=true"
@@ -89,8 +95,11 @@ export class ServiceConnectionClient {
     }
 
     public async getEndpointStatus(endpointId: string): Promise<any> {
+        let url = await this.azureDevOpsClient.getBaseOrgUrl(this.organizationName, ServiceConnectionClient.serviceType);
+        url = `${url}/${this.projectName}/_apis/serviceendpoint/endpoints/${endpointId}`;
+
         return this.azureDevOpsClient.sendRequest(<UrlBasedRequestPrepareOptions>{
-            url: this.azureDevOpsClient.getBaseOrgUrl(this.organizationName, ServiceConnectionClient.serviceType) + `/${this.projectName}/_apis/serviceendpoint/endpoints/${endpointId}`,
+            url: url,
             headers: {
                 "Content-Type": "application/json",
                 "Accept": "application/json;api-version=5.1-preview.2;excludeUrls=true"
@@ -102,8 +111,11 @@ export class ServiceConnectionClient {
     }
 
     public async authorizeEndpointForAllPipelines(endpointId: string): Promise<any> {
+        let url = await this.azureDevOpsClient.getBaseOrgUrl(this.organizationName, ServiceConnectionClient.serviceType);
+        url = `${url}/${this.projectName}/_apis/pipelines/pipelinePermissions/endpoint/${endpointId}`;
+
         return this.azureDevOpsClient.sendRequest(<UrlBasedRequestPrepareOptions>{
-            url: this.azureDevOpsClient.getBaseOrgUrl(this.organizationName, ServiceConnectionClient.serviceType) + `${this.projectName}/_apis/pipelines/pipelinePermissions/endpoint/${endpointId}`,
+            url: url,
             headers: {
                 "Content-Type": "application/json",
                 "Accept": "application/json;api-version=5.1-preview.1;excludeUrls=true;enumsAsNumbers=true;msDateFormat=true;noArrayWrap=true"

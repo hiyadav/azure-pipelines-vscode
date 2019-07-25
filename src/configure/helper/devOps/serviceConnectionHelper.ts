@@ -68,7 +68,7 @@ export class ServiceConnectionHelper {
                 break;
             }
 
-            if (!(retryCount < 20)) {
+            if (!(retryCount < 40)) {
                 throw Error(util.format(Messages.unableToCreateGitHubServiceConnection, isReady));
             }
 
