@@ -1,4 +1,5 @@
 export class Messages {
+    public static acquireTokenFromRefreshTokenFailed: string = 'Acquiring token with refresh token failed. Error: %s.';
     public static addYmlFile: string = 'Add yml file to workspace';
     public static analyzingRepo: string = 'Analyzing your repo';
     public static appKindIsNotSupported: string = 'App of kind: %s is not yet supported.';
@@ -15,7 +16,7 @@ export class Messages {
     public static creatingAzureServiceConnection: string = 'Connecting azure pipelines with your subscription: %s';
     public static creatingGitHubServiceConnection: string = 'Creating GitHub service connection';
     public static discardPipeline: string = 'Discard Pipeline';
-    public static enterAzureDevOpsOrganizationName: string = 'Enter Azure DevOps organization name';
+    public static enterAzureDevOpsOrganizationName: string = 'Azure DevOps organization name where your pipeline will be hosted';
     public static enterGitHubPat: string = 'Enter GitHub PAT token';
     public static failedToCreateAzureDevOpsProject: string = 'Failed to create project for Azure DevOps organization. Error: %s.';
     public static modifyAndCommitFile: string = 'Modify and commit yaml pipeline file to deploy.';
@@ -23,6 +24,8 @@ export class Messages {
     public static notAzureRepoUrl: string = 'Repo Url is not of Azure Repos type.';
     public static operationCancelled: string = 'Operation cancelled.';
     public static operationTimedOut: string = 'Operation timed out.';
+    public static organizationNameStaticValidationMessage: string = 'Organization names must start and end with a letter or number and can contain only letters, numbers, and hyphens';
+    public static organizationNameReservedMessage: string = 'The organization name %s is not available. Please try another organization name';
     public static pipelineSetupSuccessfully: string = 'Azure DevOps pipelines set up successfully !';
     public static remoteRepositoryNotConfigured: string = 'Remote repository is not configured. Manage your git repository with Azure Repos or Github';
     public static resourceIdMissing: string = 'Required argument: resourceId, is missing. Kindly pass the argument for getting resource.';

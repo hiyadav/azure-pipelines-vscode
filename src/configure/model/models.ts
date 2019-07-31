@@ -112,3 +112,15 @@ export class QuickPickItemWithData implements QuickPickItem {
     description?: string;
     detail?: string;
 }
+
+export interface Token {
+    session: AzureSession;
+    accessToken: string;
+    refreshToken: string;
+}
+
+export interface AadApplication {
+    appId: string;
+    secret: string;
+    objectId: string;
+}

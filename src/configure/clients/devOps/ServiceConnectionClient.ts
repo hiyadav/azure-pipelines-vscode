@@ -1,6 +1,7 @@
 import { UrlBasedRequestPrepareOptions } from 'ms-rest';
 
 import { AzureDevOpsClient } from './azureDevOpsClient';
+import { AadApplication } from '../../model/models';
 
 export class ServiceConnectionClient {
     private static serviceType = 'tfs';
@@ -47,7 +48,7 @@ export class ServiceConnectionClient {
             });
     }
 
-    public async createAzureServiceConnection(endpointName: string, tenantId: string, subscriptionId: string, scope?: string, ): Promise<any> {
+    public async createAzureServiceConnection(endpointName: string, tenantId: string, subscriptionId: string, scope: string, aadApp: AadApplication): Promise<any> {
         let url = await this.azureDevOpsClient.getBaseOrgUrl(this.organizationName, ServiceConnectionClient.serviceType);
         url = `${url}/${this.projectName}/_apis/serviceendpoint/endpoints`;
 
@@ -64,20 +65,14 @@ export class ServiceConnectionClient {
                     "parameters": {
                         "authenticationType": "spnKey",
                         "scope": scope,
-                        "serviceprincipalid": "",
-                        "serviceprincipalkey": "",
+                        "serviceprincipalid": aadApp.appId,
+                        "serviceprincipalkey": aadApp.secret,
                         "tenantid": tenantId
                     },
                     "scheme": "ServicePrincipal"
                 },
                 "data": {
-                    "appObjectId": "",
-                    "azureSpnPermissions": "",
-                    "azureSpnRoleAssignmentId": "",
-                    "creationMode": "Automatic",
-                    "environment": "AzureCloud",
-                    "scopeLevel": "Subscription",
-                    "spnObjectId": "",
+                    "creationMode": "Manual",
                     "subscriptionId": subscriptionId,
                     "subscriptionName": subscriptionId
                 },

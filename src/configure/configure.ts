@@ -15,6 +15,9 @@ import { AzureDevOpsHelper } from './helper/devOps/azureDevOpsHelper';
 import { AppServiceClient } from './clients/azure/appServiceClient';
 import { LocalGitRepoHelper } from './helper/LocalGitRepoHelper';
 import * as templateHelper from './helper/templateHelper';
+import { generateDevOpsProjectName } from './helper/commonHelper';
+import { GraphHelper } from './helper/graphHelper';
+const uuid = require('uuid/v1');
 
 export async function configurePipeline(node: any) {
     try {
@@ -72,8 +75,7 @@ class PipelineConfigurer {
 
     private async createPreRequisites(): Promise<void> {
         if (this.inputs.isNewOrganization) {
-            let repoParts = this.inputs.sourceRepository.repositoryName.split("/");
-            this.inputs.projectName = repoParts[repoParts.length-1] || "VSCode-AzurePipelines";
+            this.inputs.projectName = generateDevOpsProjectName(this.inputs.sourceRepository.repositoryName);
             await vscode.window.withProgress(
                 {
                     location: vscode.ProgressLocation.Notification,
@@ -83,7 +85,7 @@ class PipelineConfigurer {
                     return this.azureDevOpsClient.createOrganization(this.inputs.organizationName)
                         .then(() => {
                             this.azureDevOpsClient.listOrganizations(true);
-                            return this.azureDevOpsClient.createProject(this.inputs.organizationName, this.inputs.projectName)
+                            return this.azureDevOpsClient.createProject(this.inputs.organizationName, this.inputs.projectName);
                         });
                 });
         }
@@ -194,7 +196,10 @@ class PipelineConfigurer {
             }
             else {
                 this.inputs.isNewOrganization = true;
-                this.inputs.organizationName = await extensionVariables.ui.showInputBox({placeHolder: Messages.enterAzureDevOpsOrganizationName});
+                this.inputs.organizationName = await extensionVariables.ui.showInputBox({
+                    placeHolder: Messages.enterAzureDevOpsOrganizationName, 
+                    validateInput: (organizationName) => this.azureDevOpsClient.validateOrganizationName(organizationName)
+                });
             }
         }
 
@@ -232,7 +237,6 @@ class PipelineConfigurer {
         });
         let selectedSubscription: QuickPickItemWithData = await extensionVariables.ui.showQuickPick(subscriptionList, { placeHolder: Messages.selectSubscription });
         this.inputs.targetResource.subscriptionId = selectedSubscription.data.subscription.subscriptionId;
-
         // show available resources and get the chosen one
         this.appServiceClient = new AppServiceClient(extensionVariables.azureAccountExtensionApi.sessions[0].credentials, this.inputs.targetResource.subscriptionId);
         let selectedResource: QuickPickItemWithData = await extensionVariables.ui.showQuickPick(
@@ -272,7 +276,13 @@ class PipelineConfigurer {
                 title: utils.format(Messages.creatingAzureServiceConnection, this.inputs.targetResource.subscriptionId)
             },
             () => {
-                return this.serviceConnectionHelper.createAzureServiceConnection(this.inputs.targetResource.resource.name, this.inputs.azureSession.tenantId, this.inputs.targetResource.subscriptionId);
+                let scope = this.inputs.targetResource.resource.id;
+                let aadAppName = GraphHelper.generateAadApplicationName(this.inputs.organizationName, this.inputs.projectName);
+                return GraphHelper.createSpnAndAssignRole(this.inputs.azureSession, aadAppName, scope)
+                .then((aadApp) => {
+                    let serviceConnectionName = `${this.inputs.targetResource.resource.name}-${uuid().substr(0,5)}`;
+                    return this.serviceConnectionHelper.createAzureServiceConnection(serviceConnectionName, this.inputs.azureSession.tenantId, this.inputs.targetResource.subscriptionId, scope, aadApp);
+                });
             });
     }
 

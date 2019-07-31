@@ -3,6 +3,7 @@ import * as util from 'util';
 import { AzureDevOpsClient } from '../../clients/devOps/azureDevOpsClient';
 import { ServiceConnectionClient } from '../../clients/devOps/serviceConnectionClient';
 import { Messages } from '../../messages';
+import { AadApplication } from '../../model/models';
 
 export class ServiceConnectionHelper {
     private serviceConnectionClient: ServiceConnectionClient;
@@ -25,8 +26,8 @@ export class ServiceConnectionHelper {
         return endpointId;
     }
 
-    public async createAzureServiceConnection(name: string, tenantId: string, subscriptionId: string, scope?: string, ): Promise<string> {
-        let response = await this.serviceConnectionClient.createAzureServiceConnection(name, tenantId, subscriptionId, scope);
+    public async createAzureServiceConnection(name: string, tenantId: string, subscriptionId: string, scope: string, aadApp: AadApplication): Promise<string> {
+        let response = await this.serviceConnectionClient.createAzureServiceConnection(name, tenantId, subscriptionId, scope, aadApp);
         let endpointId = response.id;
         await this.waitForEndpointToBeReady(endpointId);
         await this.serviceConnectionClient.authorizeEndpointForAllPipelines(endpointId)
@@ -45,7 +46,7 @@ export class ServiceConnectionHelper {
             let response = await this.serviceConnectionClient.getEndpointStatus(endpointId);
             let operationStatus = response.operationStatus;
 
-            if (operationStatus.state.toLowerCase() === "ready") {
+            if (response.isReady) {
                 break;
             }
 

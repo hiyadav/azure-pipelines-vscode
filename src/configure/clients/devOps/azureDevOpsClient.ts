@@ -1,11 +1,12 @@
-import Mustache = require('mustache');
 import * as util from 'util';
+import * as Q from 'q';
 
 import { ServiceClientCredentials, ServiceClient, UrlBasedRequestPrepareOptions } from 'ms-rest';
 
 import { Organization, WizardInputs } from '../../model/models';
 import { sleepForMilliSeconds } from "../../helper/commonHelper";
 import { Messages } from '../../messages';
+import { ReservedHostNames } from '../../constants';
 
 // TO-DO: add handling failure cases
 // either throw here or analyze in the calling service layer for any errors;
@@ -69,7 +70,7 @@ export class AzureDevOpsClient {
         })
         .then((operation) => {
             if(operation.url) {
-                return this.monitorOperationStatus(operation.url, "5.0");
+                return this.monitorOperationStatus(operation.url);
             }
             else {
                 throw new Error(util.format(Messages.failedToCreateAzureDevOpsProject, operation.message));
@@ -79,7 +80,7 @@ export class AzureDevOpsClient {
 
     public async listOrganizations(forceRefresh?: boolean): Promise<Organization[]> {
         if (!this.listOrgPromise || forceRefresh) {
-            this.listOrgPromise = this.getConnectionData()
+            this.listOrgPromise = this.getUserData()
             .then((connectionData) => {
                 return this.serviceClient.sendRequest<any>(<UrlBasedRequestPrepareOptions>{
                     url: "https://app.vssps.visualstudio.com/_apis/accounts",
@@ -196,6 +197,53 @@ export class AzureDevOpsClient {
         }
     }
 
+    public async validateOrganizationName(organizationName: string): Promise<string> {
+        let deferred = Q.defer<string>();
+        let accountNameRegex = new RegExp(/^[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]$|^[a-zA-Z]$/);
+
+        if(!organizationName || /^\\s/.test(organizationName) || /\\s$/.test(organizationName) || organizationName.indexOf("-") === 0 || !accountNameRegex.test(organizationName)) {
+            deferred.resolve(Messages.organizationNameStaticValidationMessage);
+        }
+
+        if(ReservedHostNames.indexOf(organizationName) >= 0) {
+            deferred.resolve(util.format(Messages.organizationNameReservedMessage, organizationName));
+        }
+        
+        let url = `https://app.vsaex.visualstudio.com/_apis/HostAcquisition/NameAvailability/${organizationName}`;
+
+        this.serviceClient.sendRequest<any>(<UrlBasedRequestPrepareOptions>{
+            url: url,
+            headers: {
+                "Content-Type": "application/json",
+                "Accept": "api-version=5.0-preview.1"
+            },
+            method: "GET",
+            deserializationMapper: null,
+            serializationMapper: null
+        })
+        .then((response) => {
+            if( response.name === organizationName && !response.isAvailable) {
+                deferred.resolve(util.format(Messages.organizationNameReservedMessage, organizationName));
+            }
+            deferred.resolve("");
+        })
+        .catch(() => {
+            deferred.resolve("");
+        });
+
+        return deferred.promise;
+    }
+
+    private getUserData(): Promise<any> {
+        return this.getConnectionData()
+        .catch(() => {
+            return this.createUserProfile()
+            .then(() => {
+                return this.getConnectionData();
+            });
+        });
+    }
+
     private getConnectionData(): Promise<any> {
         return this.serviceClient.sendRequest<any>(<UrlBasedRequestPrepareOptions>{
             url: "https://app.vssps.visualstudio.com/_apis/connectiondata",
@@ -208,12 +256,24 @@ export class AzureDevOpsClient {
         });
     }
 
-    private async monitorOperationStatus(operationUrl: string, apiVersion: string): Promise<void> {
+    private createUserProfile(): Promise<any> {
+        return this.serviceClient.sendRequest<any>(<UrlBasedRequestPrepareOptions>{
+            url: "https://app.vssps.visualstudio.com/_apis/_AzureProfile/CreateProfile",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            method: "POST",
+            deserializationMapper: null,
+            serializationMapper: null
+        });
+    }
+
+    private async monitorOperationStatus(operationUrl: string): Promise<void> {
         let retryCount = 0;
         let operationResult: any;
 
         while(retryCount < 20) {
-            operationResult = await this.getOperationResult(operationUrl, apiVersion);
+            operationResult = await this.getOperationResult(operationUrl);
             let result = operationResult.status.toLowerCase();
             if(result === "succeeded") {
                 return;
@@ -230,11 +290,11 @@ export class AzureDevOpsClient {
             (operationResult && operationResult.detailedMessage) || Messages.operationTimedOut));
     }
 
-    private async getOperationResult(operationUrl: string, apiVersion: string): Promise<any> {
+    private async getOperationResult(operationUrl: string): Promise<any> {
         return this.serviceClient.sendRequest<any>(<UrlBasedRequestPrepareOptions>{
             url: operationUrl,
             queryParameters: {
-                "api-version": apiVersion
+                "api-version": "5.0"
             },
             method: "GET",
             deserializationMapper: null,
