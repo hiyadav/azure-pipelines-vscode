@@ -84,5 +84,11 @@ const nodeTemplates: Array<PipelineTemplate> = [
         path: path.join(path.dirname(path.dirname(__dirname)), 'configure/templates/nodejsWithWebpack.yml'),
         language: 'node',
         targetType: TargetResourceType.WindowsWebApp
+    },
+    {
+        label: 'Simple web app',
+        path: path.join(path.dirname(path.dirname(__dirname)), 'configure/templates/simpleWebApp.yml'),
+        language: 'none',
+        targetType: TargetResourceType.WindowsWebApp
     }
 ];

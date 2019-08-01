@@ -44,7 +44,6 @@ stages:
   condition: succeeded()
   jobs:
   - deployment: Deploy
-    displayName: Deploy
     environment: 'development'
     pool:
       vmImage: 'vs2017-win2016'
