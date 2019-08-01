@@ -1,32 +1,33 @@
 import * as util from 'util';
 import * as Q from 'q';
 
-import { ServiceClientCredentials, ServiceClient, UrlBasedRequestPrepareOptions } from 'ms-rest';
+import { ServiceClientCredentials, UrlBasedRequestPrepareOptions } from 'ms-rest';
 
 import { Organization, WizardInputs } from '../../model/models';
 import { sleepForMilliSeconds } from "../../helper/commonHelper";
 import { Messages } from '../../messages';
 import { ReservedHostNames } from '../../constants';
+import { RestClient } from '../restClient';
 
 // TO-DO: add handling failure cases
 // either throw here or analyze in the calling service layer for any errors;
 // for the second declare a model
 export class AzureDevOpsClient {
-    private serviceClient: ServiceClient;
+    private restClient: RestClient;
     private listOrgPromise: Promise<Organization[]>;
     private lastAccessedOrganization: Organization;
 
     constructor(credentials: ServiceClientCredentials) {
-        this.serviceClient = new ServiceClient(credentials);
+        this.restClient = new RestClient(credentials);
         this.listOrgPromise = this.listOrganizations();
     }
 
     public async sendRequest(urlBasedRequestPrepareOptions: UrlBasedRequestPrepareOptions): Promise<any> {
-        return this.serviceClient.sendRequest(urlBasedRequestPrepareOptions);
+        return this.restClient.sendRequest(urlBasedRequestPrepareOptions);
     }
 
     public async createOrganization(organizationName: string): Promise<any> {
-        return this.serviceClient.sendRequest<any>(<UrlBasedRequestPrepareOptions>{
+        return this.restClient.sendRequest<any>(<UrlBasedRequestPrepareOptions>{
             url: "https://app.vsaex.visualstudio.com/_apis/HostAcquisition/collections",
             headers: {
                 "Content-Type": "application/json"
@@ -48,7 +49,7 @@ export class AzureDevOpsClient {
     public async createProject(organizationName: string, projectName: string): Promise<any> {
         let collectionUrl = `https://dev.azure.com/${organizationName}`;
 
-        return this.serviceClient.sendRequest<any>(<UrlBasedRequestPrepareOptions>{
+        return this.restClient.sendRequest<any>(<UrlBasedRequestPrepareOptions>{
             url: `${collectionUrl}/_apis/projects`,
             headers: {
                 "Content-Type": "application/json"
@@ -82,7 +83,7 @@ export class AzureDevOpsClient {
         if (!this.listOrgPromise || forceRefresh) {
             this.listOrgPromise = this.getUserData()
             .then((connectionData) => {
-                return this.serviceClient.sendRequest<any>(<UrlBasedRequestPrepareOptions>{
+                return this.restClient.sendRequest<any>(<UrlBasedRequestPrepareOptions>{
                     url: "https://app.vssps.visualstudio.com/_apis/accounts",
                     headers: {
                         "Content-Type": "application/json"
@@ -106,7 +107,7 @@ export class AzureDevOpsClient {
     public async listProjects(organizationName: string): Promise<any> {
         let url = await this.getBaseOrgUrl(organizationName, "tfs");
         url = url + `/_apis/projects`;
-        let response = await this.serviceClient.sendRequest<any>(<UrlBasedRequestPrepareOptions>{
+        let response = await this.restClient.sendRequest<any>(<UrlBasedRequestPrepareOptions>{
             url: url,
             headers: {
                 "Content-Type": "application/json"
@@ -126,7 +127,7 @@ export class AzureDevOpsClient {
         let url = await this.getBaseOrgUrl(organizationName, 'tfs');
         url = `${url}/${projectName}/_apis/git/repositories/${repositoryName}`;
 
-        let repositoryDetails = await this.serviceClient.sendRequest<any>(<UrlBasedRequestPrepareOptions>{
+        let repositoryDetails = await this.restClient.sendRequest<any>(<UrlBasedRequestPrepareOptions>{
             url: url,
             headers: {
                 "Content-Type": "application/json",
@@ -146,7 +147,7 @@ export class AzureDevOpsClient {
         let url = await this.getBaseOrgUrl(inputs.organizationName, "tfs");
         url = `${url}/_apis/Contribution/HierarchyQuery`;
 
-        return await this.serviceClient.sendRequest<any>(<UrlBasedRequestPrepareOptions>{
+        return await this.restClient.sendRequest<any>(<UrlBasedRequestPrepareOptions>{
             url: url,
             headers: {
                 "Accept": "application/json;api-version=5.0-preview.1;excludeUrls=true;enumsAsNumbers=true;msDateFormat=true;noArrayWrap=true",
@@ -211,7 +212,7 @@ export class AzureDevOpsClient {
         
         let url = `https://app.vsaex.visualstudio.com/_apis/HostAcquisition/NameAvailability/${organizationName}`;
 
-        this.serviceClient.sendRequest<any>(<UrlBasedRequestPrepareOptions>{
+        this.restClient.sendRequest<any>(<UrlBasedRequestPrepareOptions>{
             url: url,
             headers: {
                 "Content-Type": "application/json",
@@ -245,7 +246,7 @@ export class AzureDevOpsClient {
     }
 
     private getConnectionData(): Promise<any> {
-        return this.serviceClient.sendRequest<any>(<UrlBasedRequestPrepareOptions>{
+        return this.restClient.sendRequest<any>(<UrlBasedRequestPrepareOptions>{
             url: "https://app.vssps.visualstudio.com/_apis/connectiondata",
             headers: {
                 "Content-Type": "application/json"
@@ -257,7 +258,7 @@ export class AzureDevOpsClient {
     }
 
     private createUserProfile(): Promise<any> {
-        return this.serviceClient.sendRequest<any>(<UrlBasedRequestPrepareOptions>{
+        return this.restClient.sendRequest<any>(<UrlBasedRequestPrepareOptions>{
             url: "https://app.vssps.visualstudio.com/_apis/_AzureProfile/CreateProfile",
             headers: {
                 "Content-Type": "application/json"
@@ -291,7 +292,7 @@ export class AzureDevOpsClient {
     }
 
     private async getOperationResult(operationUrl: string): Promise<any> {
-        return this.serviceClient.sendRequest<any>(<UrlBasedRequestPrepareOptions>{
+        return this.restClient.sendRequest<any>(<UrlBasedRequestPrepareOptions>{
             url: operationUrl,
             queryParameters: {
                 "api-version": "5.0"

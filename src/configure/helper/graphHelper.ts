@@ -6,6 +6,7 @@ import { Messages } from '../messages';
 import { TokenCredentials, ServiceClient, UrlBasedRequestPrepareOptions, ServiceClientCredentials } from 'ms-rest';
 import { generateRandomPassword } from './commonHelper';
 import * as Q from 'q';
+import { RestClient } from '../clients/restClient';
 const uuid = require('uuid/v1');
 
 export class GraphHelper {
@@ -27,11 +28,11 @@ export class GraphHelper {
     }
 
     private static async createAadApp(credentials: TokenCredentials, name: string, tenantId: string): Promise<AadApplication> {
-        let serviceClient = new ServiceClient(credentials);
+        let restClient = new RestClient(credentials);
         let secret = generateRandomPassword(20);
         let startDate = new Date(Date.now());
 
-        return serviceClient.sendRequest<any>(<UrlBasedRequestPrepareOptions>{
+        return restClient.sendRequest<any>(<UrlBasedRequestPrepareOptions>{
             url: `https://graph.windows.net/${tenantId}/applications`,
             queryParameters: {
                 "api-version": "1.6"
@@ -67,9 +68,9 @@ export class GraphHelper {
     }
 
     private static createSpn(credentials: TokenCredentials, appId: string, tenantId: string, retries: number = 0): Promise<any> {
-        let serviceClient = new ServiceClient(credentials);
+        let restClient = new RestClient(credentials);
 
-        return serviceClient.sendRequest<any>(<UrlBasedRequestPrepareOptions>{
+        return restClient.sendRequest<any>(<UrlBasedRequestPrepareOptions>{
             url: `https://graph.windows.net/${tenantId}/servicePrincipals`,
             queryParameters: {
                 "api-version": "1.6"
@@ -95,11 +96,11 @@ export class GraphHelper {
     }
 
     private static async createRoleAssignment(credentials: ServiceClientCredentials, scope: string, objectId: string, retries: number = 0) {
-        let serviceClient = new ServiceClient(credentials);
+        let restClient = new RestClient(credentials);
         let roleDefinitionId = `${scope}/providers/Microsoft.Authorization/roleDefinitions/${this.contributorRoleId}`;
         let guid = uuid();
 
-        return serviceClient.sendRequest<any>(<UrlBasedRequestPrepareOptions>{
+        return restClient.sendRequest<any>(<UrlBasedRequestPrepareOptions>{
             url: `https://management.azure.com/${scope}/providers/Microsoft.Authorization/roleAssignments/${guid}`,
             queryParameters: {
                 "api-version": "2015-07-01"

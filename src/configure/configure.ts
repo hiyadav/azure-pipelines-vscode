@@ -257,7 +257,10 @@ class PipelineConfigurer {
                 title: Messages.creatingGitHubServiceConnection
             },
             () => {
-                return this.serviceConnectionHelper.createGitHubServiceConnection(this.inputs.sourceRepository.repositoryName, githubPat)
+                let uniqueNamePostfix = uuid();
+                uniqueNamePostfix = uniqueNamePostfix.length >= 5 ? uniqueNamePostfix.substr(uniqueNamePostfix.length-5) : uniqueNamePostfix;
+                let serviceConnectionName = `${this.inputs.sourceRepository.repositoryName}-${uniqueNamePostfix}`;
+                return this.serviceConnectionHelper.createGitHubServiceConnection(serviceConnectionName, githubPat)
                     .then((serviceConnectionId) => {
                         this.inputs.sourceRepository.serviceConnectionId = serviceConnectionId;
                     });
@@ -280,7 +283,9 @@ class PipelineConfigurer {
                 let aadAppName = GraphHelper.generateAadApplicationName(this.inputs.organizationName, this.inputs.projectName);
                 return GraphHelper.createSpnAndAssignRole(this.inputs.azureSession, aadAppName, scope)
                 .then((aadApp) => {
-                    let serviceConnectionName = `${this.inputs.targetResource.resource.name}-${uuid().substr(0,5)}`;
+                    let uniqueNamePostfix = uuid();
+                    uniqueNamePostfix = uniqueNamePostfix.length >= 5 ? uniqueNamePostfix.substr(uniqueNamePostfix.length-5) : uniqueNamePostfix;
+                    let serviceConnectionName = `${this.inputs.targetResource.resource.name}-${uniqueNamePostfix}`;
                     return this.serviceConnectionHelper.createAzureServiceConnection(serviceConnectionName, this.inputs.azureSession.tenantId, this.inputs.targetResource.subscriptionId, scope, aadApp);
                 });
             });
