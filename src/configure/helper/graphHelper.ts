@@ -3,7 +3,7 @@ import { AzureEnvironment } from 'ms-rest-azure';
 import { TokenResponse, MemoryCache, AuthenticationContext } from 'adal-node';
 import * as util from 'util';
 import { Messages } from '../messages';
-import { TokenCredentials, ServiceClient, UrlBasedRequestPrepareOptions, ServiceClientCredentials } from 'ms-rest';
+import { TokenCredentials, UrlBasedRequestPrepareOptions, ServiceClientCredentials } from 'ms-rest';
 import { generateRandomPassword } from './commonHelper';
 import * as Q from 'q';
 import { RestClient } from '../clients/restClient';
@@ -19,12 +19,30 @@ export class GraphHelper {
         let graphCredentials = await this.getGraphToken(session);
         let tokenCredentials = new TokenCredentials(graphCredentials.accessToken);
         let tenantId = session.tenantId;
+        var aadApp: AadApplication;
 
-        let aadApp = await this.createAadApp(tokenCredentials, aadAppName, tenantId);
-        let spn = await this.createSpn(tokenCredentials, aadApp.appId, tenantId);
-        aadApp.objectId = spn.objectId;
-        await this.createRoleAssignment(session.credentials, scope, aadApp.objectId);
-        return aadApp;
+        return this.createAadApp(tokenCredentials, aadAppName, tenantId)
+        .then((aadApplication) => {
+            aadApp = aadApplication;
+            return this.createSpn(tokenCredentials, aadApp.appId, tenantId);
+        })
+        .then((spn) => {
+            aadApp.objectId = spn.objectId;
+            return this.createRoleAssignment(session.credentials, scope, aadApp.objectId);
+        })
+        .then(() => {
+            return aadApp;
+        })
+        .catch((error) => {
+            let errorMessage = error && error.message;
+            if(!errorMessage && error["odata.error"]) {
+                errorMessage = error["odata.error"]["message"];
+                if(typeof errorMessage === "object") {
+                    errorMessage = errorMessage.value;
+                }
+            }
+            throw new Error(errorMessage);
+        });
     }
 
     private static async createAadApp(credentials: TokenCredentials, name: string, tenantId: string): Promise<AadApplication> {
@@ -95,7 +113,7 @@ export class GraphHelper {
         });
     }
 
-    private static async createRoleAssignment(credentials: ServiceClientCredentials, scope: string, objectId: string, retries: number = 0) {
+    private static async createRoleAssignment(credentials: ServiceClientCredentials, scope: string, objectId: string, retries: number = 0): Promise<any> {
         let restClient = new RestClient(credentials);
         let roleDefinitionId = `${scope}/providers/Microsoft.Authorization/roleDefinitions/${this.contributorRoleId}`;
         let guid = uuid();

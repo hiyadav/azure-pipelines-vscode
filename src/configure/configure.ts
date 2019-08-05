@@ -17,7 +17,7 @@ import { LocalGitRepoHelper } from './helper/LocalGitRepoHelper';
 import * as templateHelper from './helper/templateHelper';
 import { generateDevOpsProjectName } from './helper/commonHelper';
 import { GraphHelper } from './helper/graphHelper';
-const uuid = require('uuid/v1');
+const uuid = require('uuid/v4');
 
 export async function configurePipeline(node: any) {
     try {
@@ -53,7 +53,9 @@ class PipelineConfigurer {
         await this.getAllRequiredInputs(node);
         await this.createPreRequisites();
         await this.checkInPipelineFileToRepository();
-        let queuedPipelineUrl = await this.azureDevOpsClient.createAndRunPipeline(this.inputs);
+        let queuedPipelineUrl = await vscode.window.withProgress<any>({ location: vscode.ProgressLocation.Notification, title: Messages.configuringPipelineAndDeployment }, () => {
+            return this.azureDevOpsClient.createAndRunPipeline(this.inputs);
+        });
         vscode.window.showInformationMessage(Messages.pipelineSetupSuccessfully, Messages.browsePipeline)
             .then((action: string) => {
                 if (action && action.toLowerCase() === Messages.browsePipeline.toLowerCase()) {
@@ -125,7 +127,7 @@ class PipelineConfigurer {
                 case SourceOptions.BrowseLocalMachine:
                     let selectedFolder: vscode.Uri[] = await vscode.window.showOpenDialog(
                         {
-                            openLabel: Messages.selectPathToAppSourceCode,
+                            openLabel: Messages.selectLabel,
                             canSelectFiles: false,
                             canSelectFolders: true,
                             canSelectMany: false
@@ -133,6 +135,9 @@ class PipelineConfigurer {
                     );
                     if (selectedFolder && selectedFolder.length > 0) {
                         this.workspacePath = selectedFolder[0].fsPath;
+                    }
+                    else {
+                        throw new Error(Messages.noWorkSpaceSelectedError);
                     }
                     break;
                 case SourceOptions.CurrentWorkspace:
@@ -205,7 +210,7 @@ class PipelineConfigurer {
 
         if (!this.inputs.projectName && !this.inputs.isNewOrganization) {
             let selectedProject = await extensionVariables.ui.showQuickPick(
-                this.azureDevOpsClient.listProjects(this.inputs.organizationName).then((projects) => projects.map(x => {return {label: x.name};})),
+                this.azureDevOpsClient.listProjects(this.inputs.organizationName).then((projects) => projects.map(x => {return {label: x};})),
                 { placeHolder: Messages.selectProject });
             this.inputs.projectName = selectedProject.label;
         }
@@ -298,22 +303,19 @@ class PipelineConfigurer {
             this.inputs.sourceRepository.localPath);
 
         await vscode.window.showTextDocument(vscode.Uri.file(path.join(this.inputs.sourceRepository.localPath, this.inputs.pipelineParameters.pipelineFilePath)));
-        await vscode.window.showInformationMessage(Messages.modifyAndCommitFile, Messages.commitAndPush, Messages.discardPipeline)
-            .then((commitOrDiscard: string) => {
-                if (commitOrDiscard.toLowerCase() === Messages.commitAndPush.toLowerCase()) {
-                    return vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: Messages.configuringPipelineAndDeployment }, async (progress) => {
-                        // handle when the branch is not upto date with remote branch and push fails
-                        let commitDetails = await this.localGitRepoHelper.commitAndPushPipelineFile(this.inputs.pipelineParameters.pipelineFilePath);
-                        this.inputs.sourceRepository.branch = commitDetails.branch;
-                        this.inputs.sourceRepository.commitId = commitDetails.commitId;
-                    });
-                }
-                else {
-                    throw new Error(Messages.operationCancelled);
-                }
+        let commitOrDiscard = await vscode.window.showInformationMessage(Messages.modifyAndCommitFile, Messages.commitAndPush, Messages.discardPipeline);
+        if (commitOrDiscard.toLowerCase() === Messages.commitAndPush.toLowerCase()) {
+            await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: Messages.configuringPipelineAndDeployment }, async (progress) => {
+                // handle when the branch is not upto date with remote branch and push fails
+                let commitDetails = await this.localGitRepoHelper.commitAndPushPipelineFile(this.inputs.pipelineParameters.pipelineFilePath);
+                this.inputs.sourceRepository.branch = commitDetails.branch;
+                this.inputs.sourceRepository.commitId = commitDetails.commitId;
             });
+        }
+        else {
+            throw new Error(Messages.operationCancelled);
+        }
     }
-
 }
 
 // this method is called when your extension is deactivated

@@ -4,7 +4,7 @@ import * as Q from 'q';
 import { ServiceClientCredentials, UrlBasedRequestPrepareOptions } from 'ms-rest';
 
 import { Organization, WizardInputs } from '../../model/models';
-import { sleepForMilliSeconds } from "../../helper/commonHelper";
+import { sleepForMilliSeconds, stringCompareFunction } from "../../helper/commonHelper";
 import { Messages } from '../../messages';
 import { ReservedHostNames } from '../../constants';
 import { RestClient } from '../restClient';
@@ -98,13 +98,24 @@ export class AzureDevOpsClient {
                     serializationMapper: null
                 });
             })
-            .then((organizations) => organizations.value);
+            .then((organizations) => {
+                let organizationList: Array<Organization> = organizations.value;
+                organizationList = organizationList.sort((org1, org2) => {
+                    let orgName1 = org1.accountName.toLowerCase();
+                    let orgName2 = org2.accountName.toLowerCase();
+                    if(orgName1 < orgName2) {
+                        return -1;
+                    }
+                    return 1;
+                });
+                return organizationList;
+            });
         }
 
         return this.listOrgPromise;
     }
 
-    public async listProjects(organizationName: string): Promise<any> {
+    public async listProjects(organizationName: string): Promise<Array<string>> {
         let url = await this.getBaseOrgUrl(organizationName, "tfs");
         url = url + `/_apis/projects`;
         let response = await this.restClient.sendRequest<any>(<UrlBasedRequestPrepareOptions>{
@@ -120,7 +131,12 @@ export class AzureDevOpsClient {
             serializationMapper: null
         });
 
-        return response.value;
+        let projects: Array<string> = [];
+        if (response.value && response.value.length > 0) {
+            projects = response.value.map((project) => project.name);
+            projects = projects.sort(stringCompareFunction);
+        }
+        return projects;
     }
 
     public async getRepositoryId(organizationName: string, projectName: string, repositoryName: string): Promise<string> {

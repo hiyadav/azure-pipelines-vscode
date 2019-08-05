@@ -22,6 +22,7 @@ export class Messages {
     public static modifyAndCommitFile: string = 'Modify and commit yaml pipeline file to deploy.';
     public static notAGitRepository: string = 'Selected workspace is not a git repository. Please select a git repository.';
     public static notAzureRepoUrl: string = 'Repo Url is not of Azure Repos type.';
+    public static noWorkSpaceSelectedError: string = 'You need to select a workspace folder to configure pipeline.';
     public static operationCancelled: string = 'Operation cancelled.';
     public static operationTimedOut: string = 'Operation timed out.';
     public static organizationNameStaticValidationMessage: string = 'Organization names must start and end with a letter or number and can contain only letters, numbers, and hyphens';
@@ -31,6 +32,7 @@ export class Messages {
     public static resourceIdMissing: string = 'Required argument: resourceId, is missing. Kindly pass the argument for getting resource.';
     public static resourceTypeIsNotSupported: string = 'Resource of type: %s is not yet supported for configuring pipelines.';
     public static selectFolderOrRepository: string = 'Select the folder or repository to deploy';
+    public static selectLabel: string = 'Select';
     public static selectOrganization: string = 'Select Azure DevOps Organization';
     public static selectPathToAppSourceCode: string = 'Select the path to your application source code.';
     public static selectPipelineTemplate: string = 'Select Azure pipelines template...';
