@@ -4,7 +4,7 @@ export class Messages {
     public static analyzingRepo: string = 'Analyzing your repo';
     public static appKindIsNotSupported: string = 'App of kind: %s is not yet supported.';
     public static azureAccountExntesionUnavailable: string = 'Azure-Account extension could not be fetched. Kindly check it is installed and activated.';
-    public static azureLoginRequired: string = 'Kindly log-in to Azure Account extension before going forward.';
+    public static azureLoginRequired: string = 'Kindly Sign In to your Azure Account before going forward.';
     public static branchRemoteMissing: string = `The branch: %s does not have any tracking branch. Also the repositoy has either more than one remotes or no remotes. Hence, we are unable to create a remote tracking branch. Kindly, create a remote tracking branch to procceed.`;
     public static browsePipeline: string = 'Browse Pipeline';
     public static cannotAddFileRemoteMissing: string = 'Cannot add yml file to your git repository, remote is not set';
@@ -41,6 +41,7 @@ export class Messages {
     public static selectProject: string = 'Select Azure DevOps project';
     public static selectSubscription: string = 'Select Azure Subscription';
     public static selectWebApp: string = 'Select Web App';
+    public static signInLabel: string = 'Sign In';
     public static unableToCreateAzureServiceConnection: string = `Unable to create azure service connection.\nOperation Status: %s\nMessage: %s\nService connection is not in ready state.`;
     public static unableToCreateGitHubServiceConnection: string =`Unable to create azure service connection.\nOperation Status: %s\nService connection is not in ready state.`;
 }

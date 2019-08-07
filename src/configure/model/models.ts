@@ -21,6 +21,7 @@ export { extensionVariables };
 export interface  AzureAccountExtensionExports {
     sessions: AzureSession[];
     subscriptions: { session: AzureSession, subscription: SubscriptionModels.Subscription }[];
+    filters: { session: AzureSession, subscription: SubscriptionModels.Subscription }[];
     waitForLogin: () => Promise<boolean>;
 }
 

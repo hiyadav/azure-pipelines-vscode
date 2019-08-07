@@ -22,7 +22,13 @@ const uuid = require('uuid/v4');
 export async function configurePipeline(node: any) {
     try {
         if (!(await extensionVariables.azureAccountExtensionApi.waitForLogin())) {
-            throw new Error(Messages.azureLoginRequired);
+            let signIn = await vscode.window.showInformationMessage(Messages.azureLoginRequired, Messages.signInLabel);
+            if(signIn.toLowerCase() === Messages.signInLabel.toLowerCase()) {
+                await vscode.commands.executeCommand("azure-account.login");
+            }
+            else {
+                throw new Error(Messages.azureLoginRequired);
+            }
         }
 
         var configurer = new PipelineConfigurer();
@@ -236,7 +242,7 @@ class PipelineConfigurer {
 
     private async getAzureResourceDetails(): Promise<void> {
         // show available subscriptions and get the chosen one
-        let subscriptionList = extensionVariables.azureAccountExtensionApi.subscriptions.map((subscriptionObject) => {
+        let subscriptionList = extensionVariables.azureAccountExtensionApi.filters.map((subscriptionObject) => {
             return <QuickPickItemWithData>{
                 label: <string>subscriptionObject.subscription.displayName,
                 data: subscriptionObject
