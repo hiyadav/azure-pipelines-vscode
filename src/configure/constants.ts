@@ -129,4 +129,4 @@ export const ReservedHostNames: string[] = [
     "teamservices",
     "java",
     "beta"
-]
+];

@@ -3,11 +3,12 @@ import * as Q from 'q';
 
 import { ServiceClientCredentials, UrlBasedRequestPrepareOptions } from 'ms-rest';
 
-import { Organization, WizardInputs } from '../../model/models';
+import { Organization } from '../../model/models';
 import { sleepForMilliSeconds, stringCompareFunction } from "../../helper/commonHelper";
 import { Messages } from '../../messages';
 import { ReservedHostNames } from '../../constants';
 import { RestClient } from '../restClient';
+import { BuildDefinition, Build } from '../../model/azureDevOps';
 
 // TO-DO: add handling failure cases
 // either throw here or analyze in the calling service layer for any errors;
@@ -159,43 +160,35 @@ export class AzureDevOpsClient {
         return repositoryDetails.id;
     }
 
-    public async createAndRunPipeline(inputs: WizardInputs): Promise<any> {
-        let url = await this.getBaseOrgUrl(inputs.organizationName, "tfs");
-        url = `${url}/_apis/Contribution/HierarchyQuery`;
+    public async createBuildDefinition(organizationName: string, buildDefinition: BuildDefinition): Promise<any> {
+        let url = await this.getBaseOrgUrl(organizationName, "tfs");
+        url = `${url}/${buildDefinition.project.id}/_apis/build/definitions`;
 
-        return await this.restClient.sendRequest<any>(<UrlBasedRequestPrepareOptions>{
+        return this.restClient.sendRequest<any>(<UrlBasedRequestPrepareOptions>{
             url: url,
-            headers: {
-                "Accept": "application/json;api-version=5.0-preview.1;excludeUrls=true;enumsAsNumbers=true;msDateFormat=true;noArrayWrap=true",
-                "Content-Type": "application/json"
-            },
             method: "POST",
-            body: {
-                "contributionIds": [
-                    "ms.vss-build-web.create-and-run-pipeline-data-provider"
-                ],
-                "dataProviderContext": {
-                    "properties": {
-                        "connectionId": inputs.sourceRepository.serviceConnectionId, //GitHub endpoint id
-                        "sourceProvider": inputs.sourceRepository.repositoryProvider,
-                        "repositoryId": inputs.sourceRepository.repositoryId,
-                        "repositoryName": inputs.sourceRepository.repositoryName,
-                        "branch": inputs.sourceRepository.branch,
-                        "sourceBranch": inputs.sourceRepository.branch,
-                        "path": inputs.pipelineParameters.pipelineFilePath,
-                        "queue": "Hosted Ubuntu 1604",
-                        "commitId": inputs.sourceRepository.commitId,
-                        "commitDescriptorName": "Set up CI/CD with Azure Pipelines",
-                        "sourcePage": {
-                            "routeValues": {
-                                "project": inputs.projectName
-                            }
-                        }
-                    }
-                }
+            headers: {
+                "Accept": "application/json;api-version=5.0-preview.7;"
             },
-            deserializationMapper: null,
-            serializationMapper: null
+            body: buildDefinition,
+            serializationMapper: null,
+            deserializationMapper: null
+        });
+    }
+
+    public async queueBuild(organizationName: string, build: Build): Promise<any> {
+        let url = await this.getBaseOrgUrl(organizationName, "tfs");
+        url = `${url}/${build.project.id}/_apis/build/builds`;
+
+        return this.restClient.sendRequest<any>(<UrlBasedRequestPrepareOptions>{
+            url: url,
+            method: "POST",
+            headers: {
+                "Accept": "application/json;api-version=5.2-preview.5;"
+            },
+            body: build,
+            serializationMapper: null,
+            deserializationMapper: null
         });
     }
 
@@ -249,6 +242,28 @@ export class AzureDevOpsClient {
         });
 
         return deferred.promise;
+    }
+
+    public async getProjectIdFromName(organizationName: string, projectName: string): Promise<string> {
+        let url = await this.getBaseOrgUrl(organizationName, "tfs");
+        url = `${url}/_apis/projects/${projectName}`;
+
+        return this.restClient.sendRequest<any>(<UrlBasedRequestPrepareOptions>{
+            url: url,
+            method: "GET",
+            headers: {
+                "Accept": "application/json;api-version=5.2-preview.5;"
+            },
+            queryParameters: {
+                "api-version": "5.0",
+                "includeCapabilities": false
+            },
+            serializationMapper: null,
+            deserializationMapper: null
+        })
+        .then((project) => {
+            return project && project.id;
+        });
     }
 
     private getUserData(): Promise<any> {

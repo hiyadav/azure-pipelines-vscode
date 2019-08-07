@@ -40,6 +40,7 @@ class PipelineConfigurer {
     private localGitRepoHelper: LocalGitRepoHelper;
     private azureDevOpsClient: AzureDevOpsClient;
     private serviceConnectionHelper: ServiceConnectionHelper;
+    private azureDevOpsHelper: AzureDevOpsHelper;
     private appServiceClient: AppServiceClient;
     private workspacePath: string;
 
@@ -47,21 +48,22 @@ class PipelineConfigurer {
         this.inputs = new WizardInputs();
         this.inputs.azureSession = extensionVariables.azureAccountExtensionApi.sessions[0];
         this.azureDevOpsClient = new AzureDevOpsClient(this.inputs.azureSession.credentials);
+        this.azureDevOpsHelper = new AzureDevOpsHelper(this.azureDevOpsClient);
     }
 
     public async configure(node: any) {
         await this.getAllRequiredInputs(node);
-        await this.createPreRequisites();
-        await this.checkInPipelineFileToRepository();
-        let queuedPipelineUrl = await vscode.window.withProgress<any>({ location: vscode.ProgressLocation.Notification, title: Messages.configuringPipelineAndDeployment }, () => {
-            return this.azureDevOpsClient.createAndRunPipeline(this.inputs);
-        });
-        vscode.window.showInformationMessage(Messages.pipelineSetupSuccessfully, Messages.browsePipeline)
-            .then((action: string) => {
-                if (action && action.toLowerCase() === Messages.browsePipeline.toLowerCase()) {
-                    vscode.env.openExternal(vscode.Uri.parse(queuedPipelineUrl.dataProviders["ms.vss-build-web.create-and-run-pipeline-data-provider"].pipelineBuildWebUrl));
-                }
+            await this.createPreRequisites();
+            await this.checkInPipelineFileToRepository();
+            let queuedPipelineUrl = await vscode.window.withProgress<string>({ location: vscode.ProgressLocation.Notification, title: Messages.configuringPipelineAndDeployment }, () => {
+                return this.azureDevOpsHelper.createAndRunPipeline(this.inputs);
             });
+            vscode.window.showInformationMessage(Messages.pipelineSetupSuccessfully, Messages.browsePipeline)
+                .then((action: string) => {
+                    if (action && action.toLowerCase() === Messages.browsePipeline.toLowerCase()) {
+                        vscode.env.openExternal(vscode.Uri.parse(queuedPipelineUrl));
+                    }
+                });
     }
 
     private async getAllRequiredInputs(node: any) {

@@ -119,8 +119,9 @@ export class LocalGitRepoHelper {
      */
     public async commitAndPushPipelineFile(pipelineYamlPath: string): Promise<{ commitId: string, branch: string }> {
         await this.gitReference.add(pipelineYamlPath);
-        let commit = await this.gitReference.commit(Messages.addYmlFile, pipelineYamlPath);
+        await this.gitReference.commit(Messages.addYmlFile, pipelineYamlPath);
         let status = await this.gitReference.status();
+        let gitLog = await this.gitReference.log();
         let branch = status.current;
         let remote = status.tracking;
         if (!remote) {
@@ -145,7 +146,7 @@ export class LocalGitRepoHelper {
 
         return {
             branch: branch,
-            commitId: commit.commit
+            commitId: gitLog.latest.hash
         };
     }
 

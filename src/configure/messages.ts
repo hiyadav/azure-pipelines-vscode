@@ -19,6 +19,7 @@ export class Messages {
     public static enterAzureDevOpsOrganizationName: string = 'Azure DevOps organization name where your pipeline will be hosted';
     public static enterGitHubPat: string = 'Enter GitHub PAT token';
     public static failedToCreateAzureDevOpsProject: string = 'Failed to create project for Azure DevOps organization. Error: %s.';
+    public static failedToCreateAzurePipeline: string = 'Failed to configure Azure pipeline. Error: %s';
     public static modifyAndCommitFile: string = 'Modify and commit yaml pipeline file to deploy.';
     public static notAGitRepository: string = 'Selected workspace is not a git repository. Please select a git repository.';
     public static notAzureRepoUrl: string = 'Repo Url is not of Azure Repos type.';
