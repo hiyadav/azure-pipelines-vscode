@@ -1,6 +1,6 @@
 export class Messages {
     public static acquireTokenFromRefreshTokenFailed: string = 'Acquiring token with refresh token failed. Error: %s.';
-    public static addYmlFile: string = 'Add yml file to workspace';
+    public static addYmlFile: string = 'Add Azure Pipeline Yml definition.';
     public static analyzingRepo: string = 'Analyzing your repo';
     public static appKindIsNotSupported: string = 'App of kind: %s is not yet supported.';
     public static azureAccountExntesionUnavailable: string = 'Azure-Account extension could not be fetched. Kindly check it is installed and activated.';
@@ -20,6 +20,7 @@ export class Messages {
     public static enterGitHubPat: string = 'Enter GitHub PAT token';
     public static failedToCreateAzureDevOpsProject: string = 'Failed to create project for Azure DevOps organization. Error: %s.';
     public static failedToCreateAzurePipeline: string = 'Failed to configure Azure pipeline. Error: %s';
+    public static githubPatTokenHelpMessage: string = 'GitHub PAT token with following permissions: full access of repository webhooks and services, read access to user profile data and email address, read and write access to all repositories data.';
     public static modifyAndCommitFile: string = 'Modify and commit yaml pipeline file to deploy.';
     public static notAGitRepository: string = 'Selected workspace is not a git repository. Please select a git repository.';
     public static notAzureRepoUrl: string = 'Repo Url is not of Azure Repos type.';

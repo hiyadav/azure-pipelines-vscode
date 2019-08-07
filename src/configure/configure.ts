@@ -257,7 +257,7 @@ class PipelineConfigurer {
             this.serviceConnectionHelper = new ServiceConnectionHelper(this.inputs.organizationName, this.inputs.projectName, this.azureDevOpsClient);
         }
 
-        let githubPat = await extensionVariables.ui.showInputBox({ placeHolder: Messages.enterGitHubPat });
+        let githubPat = await extensionVariables.ui.showInputBox({ placeHolder: Messages.enterGitHubPat, prompt: Messages.githubPatTokenHelpMessage });
         await vscode.window.withProgress(
             {
                 location: vscode.ProgressLocation.Notification,
