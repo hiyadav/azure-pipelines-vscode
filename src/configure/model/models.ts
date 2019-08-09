@@ -28,11 +28,16 @@ export interface  AzureAccountExtensionExports {
 export class WizardInputs {
     organizationName: string;
     isNewOrganization: boolean;
-    projectName: string;
+    project: DevOpsProject;
     sourceRepository: GitRepositoryParameters;
     targetResource: AzureParameters = new AzureParameters();
     pipelineParameters: PipelineParameters = new PipelineParameters();
     azureSession: AzureSession;
+}
+
+export interface DevOpsProject {
+    id: string;
+    name: string;
 }
 
 export class Organization {

@@ -56,7 +56,7 @@ export class AzureDevOpsHelper {
 
     public async createAndRunPipeline(pipelineName: string, inputs: WizardInputs): Promise<string> {
         try {
-            let buildDefinitionPayload = await this.getBuildDefinitionPayload(pipelineName, inputs);
+            let buildDefinitionPayload = this.getBuildDefinitionPayload(pipelineName, inputs);
             let definition = await this.azureDevOpsClient.createBuildDefinition(inputs.organizationName, buildDefinitionPayload);
             let build = await this.azureDevOpsClient.queueBuild(inputs.organizationName, this.getQueueBuildPayload(inputs, definition.id, definition.project.id));
             return build._links.web.href;
@@ -66,7 +66,7 @@ export class AzureDevOpsHelper {
         }
     }
 
-    private async getBuildDefinitionPayload(pipelineName: string, inputs: WizardInputs): Promise<BuildDefinition> {
+    private getBuildDefinitionPayload(pipelineName: string, inputs: WizardInputs): BuildDefinition {
         let repositoryProperties: BuildDefinitionRepositoryProperties = null;
 
         if (inputs.sourceRepository.repositoryProvider === RepositoryProvider.Github) {
@@ -81,41 +81,38 @@ export class AzureDevOpsHelper {
             };
         }
 
-        return this.azureDevOpsClient.getProjectIdFromName(inputs.organizationName, inputs.projectName)
-            .then((projectId) => {
-                return {
-                    name: pipelineName,
-                    type: 2, //YAML process type
-                    quality: 1, // Defintion=1, Draft=0
-                    path: "\\", //Folder path of build definition. Root folder in this case
-                    project: {
-                        id: projectId,
-                        name: inputs.projectName
-                    },
-                    process: {
-                        type: 2,
-                        yamlFileName: inputs.pipelineParameters.pipelineFilePath
-                    },
-                    queue: {
-                        id: 539 // Default queue Hosted VS 2017. This value is overriden by queue specified in YAML
-                    },
-                    triggers: [
-                        {
-                            triggerType: 2, // Continuous integration trigger type
-                            settingsSourceType: 2, // Use trigger source as specified in YAML
-                            batchChanges: false
-                        }
-                    ],
-                    repository: {
-                        id: inputs.sourceRepository.repositoryId,
-                        name: inputs.sourceRepository.repositoryName,
-                        type: inputs.sourceRepository.repositoryProvider,
-                        defaultBranch: inputs.sourceRepository.branch,
-                        url: inputs.sourceRepository.remoteUrl,
-                        properties: repositoryProperties
-                    }
-                };
-            });
+        return {
+            name: pipelineName,
+            type: 2, //YAML process type
+            quality: 1, // Defintion=1, Draft=0
+            path: "\\", //Folder path of build definition. Root folder in this case
+            project: {
+                id: inputs.project.id,
+                name: inputs.project.name
+            },
+            process: {
+                type: 2,
+                yamlFileName: inputs.pipelineParameters.pipelineFilePath
+            },
+            queue: {
+                id: 539 // Default queue Hosted VS 2017. This value is overriden by queue specified in YAML
+            },
+            triggers: [
+                {
+                    triggerType: 2, // Continuous integration trigger type
+                    settingsSourceType: 2, // Use trigger source as specified in YAML
+                    batchChanges: false
+                }
+            ],
+            repository: {
+                id: inputs.sourceRepository.repositoryId,
+                name: inputs.sourceRepository.repositoryName,
+                type: inputs.sourceRepository.repositoryProvider,
+                defaultBranch: inputs.sourceRepository.branch,
+                url: inputs.sourceRepository.remoteUrl,
+                properties: repositoryProperties
+            }
+        };
     }
 
     private getQueueBuildPayload(inputs: WizardInputs, buildDefinitionId: number, projectId: string): Build {

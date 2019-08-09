@@ -1,6 +1,6 @@
 import { BuildDefinition, Build } from '../../model/azureDevOps';
 import { Messages } from '../../messages';
-import { Organization } from '../../model/models';
+import { Organization, DevOpsProject } from '../../model/models';
 import { ReservedHostNames } from '../../constants';
 import { RestClient } from '../restClient';
 import { ServiceClientCredentials, UrlBasedRequestPrepareOptions } from 'ms-rest';
@@ -101,7 +101,7 @@ export class AzureDevOpsClient {
         return this.listOrgPromise;
     }
 
-    public async listProjects(organizationName: string): Promise<Array<string>> {
+    public async listProjects(organizationName: string): Promise<Array<DevOpsProject>> {
         let url = await this.getBaseOrgUrl(organizationName, "tfs");
         url = `${url}/_apis/projects`;
         let response = await this.restClient.sendRequest<any>(<UrlBasedRequestPrepareOptions>{
@@ -117,19 +117,21 @@ export class AzureDevOpsClient {
             serializationMapper: null
         });
 
-        let projects: Array<string> = [];
+        let projects: Array<DevOpsProject> = [];
         if (response.value && response.value.length > 0) {
-            projects = response.value.map((project) => project.name);
-            projects = projects.sort(stringCompareFunction);
+            projects = response.value.map((project) => {
+                return { id: project.id, name: project.name };
+            });
+            projects = projects.sort((proj1, proj2) => stringCompareFunction(proj1.name, proj2.name));
         }
         return projects;
     }
 
-    public async getRepositoryId(organizationName: string, projectName: string, repositoryName: string): Promise<string> {
+    public async getRepository(organizationName: string, projectName: string, repositoryName: string): Promise<any> {
         let url = await this.getBaseOrgUrl(organizationName, 'tfs');
         url = `${url}/${projectName}/_apis/git/repositories/${repositoryName}`;
 
-        let repositoryDetails = await this.restClient.sendRequest<any>(<UrlBasedRequestPrepareOptions>{
+        return this.restClient.sendRequest<any>(<UrlBasedRequestPrepareOptions>{
             url: url,
             headers: {
                 "Content-Type": "application/json",
@@ -141,8 +143,6 @@ export class AzureDevOpsClient {
             deserializationMapper: null,
             serializationMapper: null
         });
-
-        return repositoryDetails.id;
     }
 
     public async createBuildDefinition(organizationName: string, buildDefinition: BuildDefinition): Promise<any> {
@@ -288,7 +288,7 @@ export class AzureDevOpsClient {
         let retryCount = 0;
         let operationResult: any;
 
-        while(retryCount < 20) {
+        while(retryCount < 30) {
             operationResult = await this.getOperationResult(operationUrl);
             let result = operationResult.status.toLowerCase();
             if(result === "succeeded") {

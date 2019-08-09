@@ -62,7 +62,7 @@ class PipelineConfigurer {
         await this.createPreRequisites();
         await this.checkInPipelineFileToRepository();
         let queuedPipelineUrl = await vscode.window.withProgress<string>({ location: vscode.ProgressLocation.Notification, title: Messages.configuringPipelineAndDeployment }, () => {
-            let pipelineName = `${this.inputs.targetResource.resource.name}-${this.uniqueResourceNameSuffix}`;
+            let pipelineName = `${this.inputs.targetResource.resource.name}.${this.uniqueResourceNameSuffix}`;
             return this.azureDevOpsHelper.createAndRunPipeline(pipelineName, this.inputs);
         });
         vscode.window.showInformationMessage(Messages.pipelineSetupSuccessfully, Messages.browsePipeline)
@@ -86,7 +86,10 @@ class PipelineConfigurer {
 
     private async createPreRequisites(): Promise<void> {
         if (this.inputs.isNewOrganization) {
-            this.inputs.projectName = generateDevOpsProjectName(this.inputs.sourceRepository.repositoryName);
+            this.inputs.project = {
+                id: "",
+                name:  generateDevOpsProjectName(this.inputs.sourceRepository.repositoryName)
+            };
             await vscode.window.withProgress(
                 {
                     location: vscode.ProgressLocation.Notification,
@@ -96,7 +99,13 @@ class PipelineConfigurer {
                     return this.azureDevOpsClient.createOrganization(this.inputs.organizationName)
                         .then(() => {
                             this.azureDevOpsClient.listOrganizations(true);
-                            return this.azureDevOpsClient.createProject(this.inputs.organizationName, this.inputs.projectName);
+                            return this.azureDevOpsClient.createProject(this.inputs.organizationName, this.inputs.project.name);
+                        })
+                        .then(() => {
+                            return this.azureDevOpsClient.getProjectIdFromName(this.inputs.organizationName, this.inputs.project.name);
+                        })
+                        .then((projectId) => {
+                            this.inputs.project.id = projectId;
                         });
                 });
         }
@@ -167,10 +176,13 @@ class PipelineConfigurer {
         if (this.inputs.sourceRepository.repositoryProvider === RepositoryProvider.AzureRepos) {
             let orgAndProjectName = AzureDevOpsHelper.getOrganizationAndProjectNameFromRepositoryUrl(this.inputs.sourceRepository.remoteUrl);
             this.inputs.organizationName = orgAndProjectName.orgnizationName;
-            this.inputs.projectName = orgAndProjectName.projectName;
-            this.azureDevOpsClient.getRepositoryId(this.inputs.organizationName, this.inputs.projectName, this.inputs.sourceRepository.repositoryName)
-                .then((repositoryId) => {
-                    this.inputs.sourceRepository.repositoryId = repositoryId;
+            this.azureDevOpsClient.getRepository(this.inputs.organizationName, this.inputs.project.name, this.inputs.sourceRepository.repositoryName)
+                .then((repository) => {
+                    this.inputs.sourceRepository.repositoryId = repository.id;
+                    this.inputs.project = {
+                        id: repository.project.id,
+                        name: repository.project.name
+                    };
                 });
         }
     }
@@ -200,28 +212,27 @@ class PipelineConfigurer {
     }
 
     private async getAzureDevOpsDetails(): Promise<void> {
-        if (!this.inputs.organizationName) {
+        if (this.inputs.sourceRepository.repositoryProvider !== RepositoryProvider.AzureRepos) {
             this.inputs.isNewOrganization = false;
             let devOpsOrganizations = await this.azureDevOpsClient.listOrganizations();
-            if(devOpsOrganizations && devOpsOrganizations.length > 0) {
+
+            if (devOpsOrganizations && devOpsOrganizations.length > 0) {
                 let selectedOrganization = await extensionVariables.ui.showQuickPick(
                     devOpsOrganizations.map(x => { return { label: x.accountName }; }), { placeHolder: Messages.selectOrganization });
                 this.inputs.organizationName = selectedOrganization.label;
+
+                let selectedProject = await extensionVariables.ui.showQuickPick(
+                    this.azureDevOpsClient.listProjects(this.inputs.organizationName).then((projects) => projects.map(x => { return { label: x.name, data: x }; })),
+                    { placeHolder: Messages.selectProject });
+                this.inputs.project = selectedProject.data;
             }
             else {
                 this.inputs.isNewOrganization = true;
                 this.inputs.organizationName = await extensionVariables.ui.showInputBox({
-                    placeHolder: Messages.enterAzureDevOpsOrganizationName, 
+                    placeHolder: Messages.enterAzureDevOpsOrganizationName,
                     validateInput: (organizationName) => this.azureDevOpsClient.validateOrganizationName(organizationName)
                 });
             }
-        }
-
-        if (!this.inputs.projectName && !this.inputs.isNewOrganization) {
-            let selectedProject = await extensionVariables.ui.showQuickPick(
-                this.azureDevOpsClient.listProjects(this.inputs.organizationName).then((projects) => projects.map(x => {return {label: x};})),
-                { placeHolder: Messages.selectProject });
-            this.inputs.projectName = selectedProject.label;
         }
     }
 
@@ -261,7 +272,7 @@ class PipelineConfigurer {
 
     private async getGitubConnectionService(): Promise<void> {
         if (!this.serviceConnectionHelper) {
-            this.serviceConnectionHelper = new ServiceConnectionHelper(this.inputs.organizationName, this.inputs.projectName, this.azureDevOpsClient);
+            this.serviceConnectionHelper = new ServiceConnectionHelper(this.inputs.organizationName, this.inputs.project.name, this.azureDevOpsClient);
         }
 
         let githubPat = await extensionVariables.ui.showInputBox({ placeHolder: Messages.enterGitHubPat, prompt: Messages.githubPatTokenHelpMessage });
@@ -281,7 +292,7 @@ class PipelineConfigurer {
 
     private async createAzureRMServiceConnection(): Promise<void> {
         if (!this.serviceConnectionHelper) {
-            this.serviceConnectionHelper = new ServiceConnectionHelper(this.inputs.organizationName, this.inputs.projectName, this.azureDevOpsClient);
+            this.serviceConnectionHelper = new ServiceConnectionHelper(this.inputs.organizationName, this.inputs.project.name, this.azureDevOpsClient);
         }
         // TODO: show notification while setup is being done.
         // ?? should SPN created be scoped to resource group of target azure resource.
@@ -292,7 +303,7 @@ class PipelineConfigurer {
             },
             () => {
                 let scope = this.inputs.targetResource.resource.id;
-                let aadAppName = GraphHelper.generateAadApplicationName(this.inputs.organizationName, this.inputs.projectName);
+                let aadAppName = GraphHelper.generateAadApplicationName(this.inputs.organizationName, this.inputs.project.name);
                 return GraphHelper.createSpnAndAssignRole(this.inputs.azureSession, aadAppName, scope)
                 .then((aadApp) => {
                     let serviceConnectionName = `${this.inputs.targetResource.resource.name}-${this.uniqueResourceNameSuffix}`;

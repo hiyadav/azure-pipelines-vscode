@@ -49,7 +49,7 @@ export class ServiceConnectionHelper {
                 break;
             }
 
-            if (!(retryCount < 20) || operationStatus.state.toLowerCase() === "failed") {
+            if (!(retryCount < 30) || operationStatus.state.toLowerCase() === "failed") {
                 throw Error(util.format(Messages.unableToCreateAzureServiceConnection, operationStatus.state, operationStatus.statusMessage));
             }
 
