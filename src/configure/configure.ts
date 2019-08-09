@@ -47,12 +47,14 @@ class PipelineConfigurer {
     private azureDevOpsHelper: AzureDevOpsHelper;
     private appServiceClient: AppServiceClient;
     private workspacePath: string;
+    private uniqueResourceNameSuffix: string;
 
     public constructor() {
         this.inputs = new WizardInputs();
         this.inputs.azureSession = extensionVariables.azureAccountExtensionApi.sessions[0];
         this.azureDevOpsClient = new AzureDevOpsClient(this.inputs.azureSession.credentials);
         this.azureDevOpsHelper = new AzureDevOpsHelper(this.azureDevOpsClient);
+        this.uniqueResourceNameSuffix = uuid().substr(0, 5);
     }
 
     public async configure(node: any) {
@@ -60,7 +62,8 @@ class PipelineConfigurer {
         await this.createPreRequisites();
         await this.checkInPipelineFileToRepository();
         let queuedPipelineUrl = await vscode.window.withProgress<string>({ location: vscode.ProgressLocation.Notification, title: Messages.configuringPipelineAndDeployment }, () => {
-            return this.azureDevOpsHelper.createAndRunPipeline(this.inputs);
+            let pipelineName = `${this.inputs.targetResource.resource.name}-${this.uniqueResourceNameSuffix}`;
+            return this.azureDevOpsHelper.createAndRunPipeline(pipelineName, this.inputs);
         });
         vscode.window.showInformationMessage(Messages.pipelineSetupSuccessfully, Messages.browsePipeline)
             .then((action: string) => {
@@ -268,9 +271,7 @@ class PipelineConfigurer {
                 title: Messages.creatingGitHubServiceConnection
             },
             () => {
-                let uniqueNamePostfix = uuid();
-                uniqueNamePostfix = uniqueNamePostfix.length >= 5 ? uniqueNamePostfix.substr(uniqueNamePostfix.length-5) : uniqueNamePostfix;
-                let serviceConnectionName = `${this.inputs.sourceRepository.repositoryName}-${uniqueNamePostfix}`;
+                let serviceConnectionName = `${this.inputs.sourceRepository.repositoryName}-${this.uniqueResourceNameSuffix}`;
                 return this.serviceConnectionHelper.createGitHubServiceConnection(serviceConnectionName, githubPat)
                     .then((serviceConnectionId) => {
                         this.inputs.sourceRepository.serviceConnectionId = serviceConnectionId;
@@ -294,9 +295,7 @@ class PipelineConfigurer {
                 let aadAppName = GraphHelper.generateAadApplicationName(this.inputs.organizationName, this.inputs.projectName);
                 return GraphHelper.createSpnAndAssignRole(this.inputs.azureSession, aadAppName, scope)
                 .then((aadApp) => {
-                    let uniqueNamePostfix = uuid();
-                    uniqueNamePostfix = uniqueNamePostfix.length >= 5 ? uniqueNamePostfix.substr(uniqueNamePostfix.length-5) : uniqueNamePostfix;
-                    let serviceConnectionName = `${this.inputs.targetResource.resource.name}-${uniqueNamePostfix}`;
+                    let serviceConnectionName = `${this.inputs.targetResource.resource.name}-${this.uniqueResourceNameSuffix}`;
                     return this.serviceConnectionHelper.createAzureServiceConnection(serviceConnectionName, this.inputs.azureSession.tenantId, this.inputs.targetResource.subscriptionId, scope, aadApp);
                 });
             });

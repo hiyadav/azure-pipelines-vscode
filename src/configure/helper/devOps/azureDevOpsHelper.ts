@@ -1,4 +1,3 @@
-const uuid = require('uuid/v4');
 import { AzureDevOpsClient } from '../../clients/devOps/azureDevOpsClient';
 import { BuildDefinition, BuildDefinitionRepositoryProperties, Build } from '../../model/azureDevOps';
 import { Messages } from '../../messages';
@@ -55,9 +54,9 @@ export class AzureDevOpsHelper {
         }
     }
 
-    public async createAndRunPipeline(inputs: WizardInputs): Promise<string> {
+    public async createAndRunPipeline(pipelineName: string, inputs: WizardInputs): Promise<string> {
         try {
-            let buildDefinitionPayload = await this.getBuildDefinitionPayload(inputs);
+            let buildDefinitionPayload = await this.getBuildDefinitionPayload(pipelineName, inputs);
             let definition = await this.azureDevOpsClient.createBuildDefinition(inputs.organizationName, buildDefinitionPayload);
             let build = await this.azureDevOpsClient.queueBuild(inputs.organizationName, this.getQueueBuildPayload(inputs, definition.id, definition.project.id));
             return build._links.web.href;
@@ -67,7 +66,7 @@ export class AzureDevOpsHelper {
         }
     }
 
-    private async getBuildDefinitionPayload(inputs: WizardInputs): Promise<BuildDefinition> {
+    private async getBuildDefinitionPayload(pipelineName: string, inputs: WizardInputs): Promise<BuildDefinition> {
         let repositoryProperties: BuildDefinitionRepositoryProperties = null;
 
         if (inputs.sourceRepository.repositoryProvider === RepositoryProvider.Github) {
@@ -84,9 +83,8 @@ export class AzureDevOpsHelper {
 
         return this.azureDevOpsClient.getProjectIdFromName(inputs.organizationName, inputs.projectName)
             .then((projectId) => {
-                let uniqueSuffix = uuid().substr(0, 4);
                 return {
-                    name: `${inputs.targetResource.resource.name}.${uniqueSuffix}`,
+                    name: pipelineName,
                     type: 2, //YAML process type
                     quality: 1, // Defintion=1, Draft=0
                     path: "\\", //Folder path of build definition. Root folder in this case

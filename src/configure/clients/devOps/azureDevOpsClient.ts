@@ -93,14 +93,7 @@ export class AzureDevOpsClient {
             })
             .then((organizations) => {
                 let organizationList: Array<Organization> = organizations.value;
-                organizationList = organizationList.sort((org1, org2) => {
-                    let orgName1 = org1.accountName.toLowerCase();
-                    let orgName2 = org2.accountName.toLowerCase();
-                    if(orgName1 < orgName2) {
-                        return -1;
-                    }
-                    return 1;
-                });
+                organizationList = organizationList.sort((org1, org2) => stringCompareFunction(org1.accountName, org2.accountName));
                 return organizationList;
             });
         }

@@ -10,8 +10,19 @@ export function generateDevOpsProjectName(repositoryName?: string): string {
     if(!repositoryName) {
         return "AzurePipelinesProject";
     }
+
     let repoParts = repositoryName.split("/");
-    return repoParts[repoParts.length-1];
+    let suffix = repoParts[repoParts.length-1];
+    suffix = suffix.trim();
+    // project name cannot end with . or _
+    suffix = suffix.replace(/\.[\.]*$/, '').replace(/^_[_]*$/, '');
+
+    let projectName = `AzurePipelinesProject.${suffix}`;
+    if(projectName.length > 64) {
+        projectName = projectName.substr(0, 64);
+    }
+
+    return projectName;
 }
 
 export function generateRandomPassword(length: number = 20): string {
