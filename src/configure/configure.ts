@@ -1,23 +1,21 @@
+const uuid = require('uuid/v4');
+import { AppServiceClient } from './clients/azure/appServiceClient';
+import { AzureDevOpsClient } from './clients/devOps/azureDevOpsClient';
+import { AzureDevOpsHelper } from './helper/devOps/azureDevOpsHelper';
+import { AzureTreeItem } from 'vscode-azureextensionui';
+import { exit } from 'process';
+import { generateDevOpsProjectName } from './helper/commonHelper';
+import { GenericResource } from 'azure-arm-resource/lib/resource/models';
+import { GraphHelper } from './helper/graphHelper';
+import { LocalGitRepoHelper } from './helper/LocalGitRepoHelper';
+import { Messages } from './messages';
+import { QuickPickItem } from 'vscode';
+import { ServiceConnectionHelper } from './helper/devOps/serviceConnectionHelper';
+import { SourceOptions, RepositoryProvider, extensionVariables, WizardInputs, WebAppKind, PipelineTemplate, QuickPickItemWithData } from './model/models';
 import * as path from 'path';
+import * as templateHelper from './helper/templateHelper';
 import * as utils from 'util';
 import * as vscode from 'vscode';
-
-import { GenericResource } from 'azure-arm-resource/lib/resource/models';
-import { AzureTreeItem } from 'vscode-azureextensionui';
-import { QuickPickItem } from 'vscode';
-
-import { Messages } from './messages';
-import { SourceOptions, RepositoryProvider, extensionVariables, WizardInputs, WebAppKind, PipelineTemplate, QuickPickItemWithData } from './model/models';
-import { AzureDevOpsClient } from './clients/devOps/azureDevOpsClient';
-import { exit } from 'process';
-import { ServiceConnectionHelper } from './helper/devOps/serviceConnectionHelper';
-import { AzureDevOpsHelper } from './helper/devOps/azureDevOpsHelper';
-import { AppServiceClient } from './clients/azure/appServiceClient';
-import { LocalGitRepoHelper } from './helper/LocalGitRepoHelper';
-import * as templateHelper from './helper/templateHelper';
-import { generateDevOpsProjectName } from './helper/commonHelper';
-import { GraphHelper } from './helper/graphHelper';
-const uuid = require('uuid/v4');
 
 export async function configurePipeline(node: any) {
     try {
@@ -59,17 +57,17 @@ class PipelineConfigurer {
 
     public async configure(node: any) {
         await this.getAllRequiredInputs(node);
-            await this.createPreRequisites();
-            await this.checkInPipelineFileToRepository();
-            let queuedPipelineUrl = await vscode.window.withProgress<string>({ location: vscode.ProgressLocation.Notification, title: Messages.configuringPipelineAndDeployment }, () => {
-                return this.azureDevOpsHelper.createAndRunPipeline(this.inputs);
+        await this.createPreRequisites();
+        await this.checkInPipelineFileToRepository();
+        let queuedPipelineUrl = await vscode.window.withProgress<string>({ location: vscode.ProgressLocation.Notification, title: Messages.configuringPipelineAndDeployment }, () => {
+            return this.azureDevOpsHelper.createAndRunPipeline(this.inputs);
+        });
+        vscode.window.showInformationMessage(Messages.pipelineSetupSuccessfully, Messages.browsePipeline)
+            .then((action: string) => {
+                if (action && action.toLowerCase() === Messages.browsePipeline.toLowerCase()) {
+                    vscode.env.openExternal(vscode.Uri.parse(queuedPipelineUrl));
+                }
             });
-            vscode.window.showInformationMessage(Messages.pipelineSetupSuccessfully, Messages.browsePipeline)
-                .then((action: string) => {
-                    if (action && action.toLowerCase() === Messages.browsePipeline.toLowerCase()) {
-                        vscode.env.openExternal(vscode.Uri.parse(queuedPipelineUrl));
-                    }
-                });
     }
 
     private async getAllRequiredInputs(node: any) {

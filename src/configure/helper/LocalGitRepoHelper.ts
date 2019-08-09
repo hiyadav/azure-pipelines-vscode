@@ -1,15 +1,14 @@
+import { AzureDevOpsHelper } from './devOps/azureDevOpsHelper';
+import { BranchSummary } from 'simple-git/typings/response';
+import { GitHubProvider } from './gitHubHelper';
+import { GitRepositoryParameters, RepositoryProvider } from '../model/models';
+import { Messages } from '../messages';
 import * as fs from 'fs';
-import * as path from 'path';
 import * as git from 'simple-git/promise';
+import * as path from 'path';
 import * as Q from 'q';
 import * as util from 'util';
 import * as vscode from 'vscode';
-
-import { AzureDevOpsHelper } from './devOps/azureDevOpsHelper';
-import { Messages } from '../messages';
-import { GitRepositoryParameters, RepositoryProvider } from '../model/models';
-import { GitHubProvider } from './gitHubHelper';
-import { BranchSummary } from 'simple-git/typings/response';
 
 export class LocalGitRepoHelper {
     private gitReference: git.SimpleGit;

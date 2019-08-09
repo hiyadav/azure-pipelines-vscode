@@ -1,7 +1,6 @@
-import { UrlBasedRequestPrepareOptions } from 'ms-rest';
-
-import { AzureDevOpsClient } from './azureDevOpsClient';
 import { AadApplication } from '../../model/models';
+import { AzureDevOpsClient } from './azureDevOpsClient';
+import { UrlBasedRequestPrepareOptions } from 'ms-rest';
 
 export class ServiceConnectionClient {
     private static serviceType = 'tfs';

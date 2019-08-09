@@ -1,9 +1,8 @@
-import * as util from 'util';
-
-import { AzureDevOpsClient } from '../../clients/devOps/azureDevOpsClient';
-import { ServiceConnectionClient } from '../../clients/devOps/serviceConnectionClient';
-import { Messages } from '../../messages';
 import { AadApplication } from '../../model/models';
+import { AzureDevOpsClient } from '../../clients/devOps/azureDevOpsClient';
+import { Messages } from '../../messages';
+import { ServiceConnectionClient } from '../../clients/devOps/serviceConnectionClient';
+import * as util from 'util';
 
 export class ServiceConnectionHelper {
     private serviceConnectionClient: ServiceConnectionClient;

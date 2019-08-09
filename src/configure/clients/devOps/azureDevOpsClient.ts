@@ -1,18 +1,13 @@
-import * as util from 'util';
-import * as Q from 'q';
-
-import { ServiceClientCredentials, UrlBasedRequestPrepareOptions } from 'ms-rest';
-
-import { Organization } from '../../model/models';
-import { sleepForMilliSeconds, stringCompareFunction } from "../../helper/commonHelper";
+import { BuildDefinition, Build } from '../../model/azureDevOps';
 import { Messages } from '../../messages';
+import { Organization } from '../../model/models';
 import { ReservedHostNames } from '../../constants';
 import { RestClient } from '../restClient';
-import { BuildDefinition, Build } from '../../model/azureDevOps';
+import { ServiceClientCredentials, UrlBasedRequestPrepareOptions } from 'ms-rest';
+import { sleepForMilliSeconds, stringCompareFunction } from "../../helper/commonHelper";
+import * as Q from 'q';
+import * as util from 'util';
 
-// TO-DO: add handling failure cases
-// either throw here or analyze in the calling service layer for any errors;
-// for the second declare a model
 export class AzureDevOpsClient {
     private restClient: RestClient;
     private listOrgPromise: Promise<Organization[]>;
@@ -38,9 +33,6 @@ export class AzureDevOpsClient {
                 "collectionName": organizationName,
                 "api-version": "4.0-preview.1",
                 "preferredRegion": "CUS"
-            },
-            body: {
-                "VisualStudio.Services.HostResolution.UseCodexDomainForHostCreation": "true"
             },
             deserializationMapper: null,
             serializationMapper: null
@@ -118,7 +110,7 @@ export class AzureDevOpsClient {
 
     public async listProjects(organizationName: string): Promise<Array<string>> {
         let url = await this.getBaseOrgUrl(organizationName, "tfs");
-        url = url + `/_apis/projects`;
+        url = `${url}/_apis/projects`;
         let response = await this.restClient.sendRequest<any>(<UrlBasedRequestPrepareOptions>{
             url: url,
             headers: {
@@ -211,36 +203,35 @@ export class AzureDevOpsClient {
         let deferred = Q.defer<string>();
         let accountNameRegex = new RegExp(/^[a-zA-Z0-9][a-zA-Z0-9-]*[a-zA-Z0-9]$|^[a-zA-Z]$/);
 
-        if(!organizationName || /^\\s/.test(organizationName) || /\\s$/.test(organizationName) || organizationName.indexOf("-") === 0 || !accountNameRegex.test(organizationName)) {
+        if (!organizationName || /^\\s/.test(organizationName) || /\\s$/.test(organizationName) || organizationName.indexOf("-") === 0 || !accountNameRegex.test(organizationName)) {
             deferred.resolve(Messages.organizationNameStaticValidationMessage);
         }
-
-        if(ReservedHostNames.indexOf(organizationName) >= 0) {
+        else if (ReservedHostNames.indexOf(organizationName) >= 0) {
             deferred.resolve(util.format(Messages.organizationNameReservedMessage, organizationName));
         }
-        
-        let url = `https://app.vsaex.visualstudio.com/_apis/HostAcquisition/NameAvailability/${organizationName}`;
+        else {
+            let url = `https://app.vsaex.visualstudio.com/_apis/HostAcquisition/NameAvailability/${organizationName}`;
 
-        this.restClient.sendRequest<any>(<UrlBasedRequestPrepareOptions>{
-            url: url,
-            headers: {
-                "Content-Type": "application/json",
-                "Accept": "api-version=5.0-preview.1"
-            },
-            method: "GET",
-            deserializationMapper: null,
-            serializationMapper: null
-        })
-        .then((response) => {
-            if( response.name === organizationName && !response.isAvailable) {
-                deferred.resolve(util.format(Messages.organizationNameReservedMessage, organizationName));
-            }
-            deferred.resolve("");
-        })
-        .catch(() => {
-            deferred.resolve("");
-        });
-
+            this.restClient.sendRequest<any>(<UrlBasedRequestPrepareOptions>{
+                url: url,
+                headers: {
+                    "Content-Type": "application/json",
+                    "Accept": "api-version=5.0-preview.1"
+                },
+                method: "GET",
+                deserializationMapper: null,
+                serializationMapper: null
+            })
+                .then((response) => {
+                    if (response.name === organizationName && !response.isAvailable) {
+                        deferred.resolve(util.format(Messages.organizationNameReservedMessage, organizationName));
+                    }
+                    deferred.resolve("");
+                })
+                .catch(() => {
+                    deferred.resolve("");
+                });
+        }
         return deferred.promise;
     }
 

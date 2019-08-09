@@ -1,30 +1,31 @@
-import { AzureSession, Token, AadApplication } from '../model/models';
-import { AzureEnvironment } from 'ms-rest-azure';
-import { TokenResponse, MemoryCache, AuthenticationContext } from 'adal-node';
-import * as util from 'util';
-import { Messages } from '../messages';
-import { TokenCredentials, UrlBasedRequestPrepareOptions, ServiceClientCredentials } from 'ms-rest';
-import { generateRandomPassword } from './commonHelper';
-import * as Q from 'q';
-import { RestClient } from '../clients/restClient';
 const uuid = require('uuid/v1');
+import { AzureEnvironment } from 'ms-rest-azure';
+import { AzureSession, Token, AadApplication } from '../model/models';
+import { generateRandomPassword } from './commonHelper';
+import { Messages } from '../messages';
+import { RestClient } from '../clients/restClient';
+import { TokenCredentials, UrlBasedRequestPrepareOptions, ServiceClientCredentials } from 'ms-rest';
+import { TokenResponse, MemoryCache, AuthenticationContext } from 'adal-node';
+import * as Q from 'q';
+import * as util from 'util';
 
 export class GraphHelper {
 
     private static contributorRoleId = "b24988ac-6180-42a0-ab88-20f7382dd24c";
-    private static retryCount = 20;
+    private static retryCount = 30;
     private static retryTimeout = 2 * 1000;
 
     public static async createSpnAndAssignRole(session: AzureSession, aadAppName: string, scope: string): Promise<AadApplication> {
         let graphCredentials = await this.getGraphToken(session);
         let tokenCredentials = new TokenCredentials(graphCredentials.accessToken);
+        let graphClient = new RestClient(tokenCredentials);
         let tenantId = session.tenantId;
         var aadApp: AadApplication;
 
-        return this.createAadApp(tokenCredentials, aadAppName, tenantId)
+        return this.createAadApp(graphClient, aadAppName, tenantId)
         .then((aadApplication) => {
             aadApp = aadApplication;
-            return this.createSpn(tokenCredentials, aadApp.appId, tenantId);
+            return this.createSpn(graphClient, aadApp.appId, tenantId);
         })
         .then((spn) => {
             aadApp.objectId = spn.objectId;
@@ -45,12 +46,76 @@ export class GraphHelper {
         });
     }
 
-    private static async createAadApp(credentials: TokenCredentials, name: string, tenantId: string): Promise<AadApplication> {
-        let restClient = new RestClient(credentials);
+    public static generateAadApplicationName(accountName: string, projectName: string): string {
+        var spnLengthAllowed = 92;
+        var guid = uuid();
+        var projectName = projectName.replace(/[^a-zA-Z0-9_-]/g, "");
+        var accountName = accountName.replace(/[^a-zA-Z0-9_-]/g, "");
+        var spnName = accountName + "-" + projectName + "-" + guid;
+        if (spnName.length <= spnLengthAllowed) {
+            return spnName;
+        }
+
+        // 2 is subtracted for delimiter '-'
+        spnLengthAllowed = spnLengthAllowed - guid.length - 2;
+        if (accountName.length > spnLengthAllowed / 2 && projectName.length > spnLengthAllowed / 2) {
+            accountName = accountName.substr(0, spnLengthAllowed / 2);
+            projectName = projectName.substr(0, spnLengthAllowed - accountName.length);
+        }
+        else if (accountName.length > spnLengthAllowed / 2 && accountName.length + projectName.length > spnLengthAllowed) {
+            accountName = accountName.substr(0, spnLengthAllowed - projectName.length);
+        }
+        else if (projectName.length > spnLengthAllowed / 2 && accountName.length + projectName.length > spnLengthAllowed) {
+            projectName = projectName.substr(0, spnLengthAllowed - accountName.length);
+        }
+
+        return accountName + "-" + projectName + "-" + guid;
+    }
+
+    private static async getGraphToken(session: AzureSession): Promise<TokenResponse> {
+        let refreshTokenResponse = await this.getRefreshToken(session);
+        return this.getResourceTokenFromRefreshToken(session.environment, refreshTokenResponse.refreshToken, session.tenantId, (<any>session.credentials).clientId, session.environment.activeDirectoryGraphResourceId);
+    }
+
+    private static async getRefreshToken(session: AzureSession): Promise<Token> {
+        return new Promise<Token>((resolve, reject) => {
+            const credentials: any = session.credentials;
+            const environment = session.environment;
+            credentials.context.acquireToken(environment.activeDirectoryResourceId, credentials.username, credentials.clientId, function (err: any, result: any) {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve({
+                        session,
+                        accessToken: result.accessToken,
+                        refreshToken: result.refreshToken
+                    });
+                }
+            });
+        });
+    }
+
+    private static async getResourceTokenFromRefreshToken(environment: AzureEnvironment, refreshToken: string, tenantId: string, clientId: string, resource: string): Promise<TokenResponse> {
+        return new Promise<TokenResponse>((resolve, reject) => {
+            const tokenCache = new MemoryCache();
+            const context = new AuthenticationContext(`${environment.activeDirectoryEndpointUrl}${tenantId}`, true, tokenCache);
+            context.acquireTokenWithRefreshToken(refreshToken, clientId, resource, (err, tokenResponse) => {
+                if (err) {
+                    reject(new Error(util.format(Messages.acquireTokenFromRefreshTokenFailed, err.message)));
+                } else if (tokenResponse.error) {
+                    reject(new Error(util.format(Messages.acquireTokenFromRefreshTokenFailed, tokenResponse.error)));
+                } else {
+                    resolve(<TokenResponse>tokenResponse);
+                }
+            });
+        });
+    }
+
+    private static async createAadApp(graphClient: RestClient, name: string, tenantId: string): Promise<AadApplication> {
         let secret = generateRandomPassword(20);
         let startDate = new Date(Date.now());
 
-        return restClient.sendRequest<any>(<UrlBasedRequestPrepareOptions>{
+        return graphClient.sendRequest<any>(<UrlBasedRequestPrepareOptions>{
             url: `https://graph.windows.net/${tenantId}/applications`,
             queryParameters: {
                 "api-version": "1.6"
@@ -85,10 +150,9 @@ export class GraphHelper {
         });
     }
 
-    private static createSpn(credentials: TokenCredentials, appId: string, tenantId: string, retries: number = 0): Promise<any> {
-        let restClient = new RestClient(credentials);
+    private static createSpn(graphClient: RestClient, appId: string, tenantId: string, retries: number = 0): Promise<any> {
 
-        return restClient.sendRequest<any>(<UrlBasedRequestPrepareOptions>{
+        return graphClient.sendRequest<any>(<UrlBasedRequestPrepareOptions>{
             url: `https://graph.windows.net/${tenantId}/servicePrincipals`,
             queryParameters: {
                 "api-version": "1.6"
@@ -107,7 +171,7 @@ export class GraphHelper {
         .catch((error) => {
             if(retries++ < this.retryCount) {
                 return Q.delay(this.retryTimeout)
-                .then(() => this.createSpn(credentials, appId, tenantId, retries));
+                .then(() => this.createSpn(graphClient, appId, tenantId, retries));
             }
             throw error;
         });
@@ -143,70 +207,5 @@ export class GraphHelper {
             }
             throw error;
         });
-    }
-
-    public static async getRefreshToken(session: AzureSession): Promise<Token> {
-        return new Promise<Token>((resolve, reject) => {
-            const credentials: any = session.credentials;
-            const environment = session.environment;
-            credentials.context.acquireToken(environment.activeDirectoryResourceId, credentials.username, credentials.clientId, function (err: any, result: any) {
-                if (err) {
-                    reject(err);
-                } else {
-                    resolve({
-                        session,
-                        accessToken: result.accessToken,
-                        refreshToken: result.refreshToken
-                    });
-                }
-            });
-        });
-    }
-
-    public static async getResourceTokenFromRefreshToken(environment: AzureEnvironment, refreshToken: string, tenantId: string, clientId: string, resource: string): Promise<TokenResponse> {
-        return new Promise<TokenResponse>((resolve, reject) => {
-            const tokenCache = new MemoryCache();
-            const context = new AuthenticationContext(`${environment.activeDirectoryEndpointUrl}${tenantId}`, true, tokenCache);
-            context.acquireTokenWithRefreshToken(refreshToken, clientId, resource, (err, tokenResponse) => {
-                if (err) {
-                    reject(new Error(util.format(Messages.acquireTokenFromRefreshTokenFailed, err.message)));
-                } else if (tokenResponse.error) {
-                    reject(new Error(util.format(Messages.acquireTokenFromRefreshTokenFailed, tokenResponse.error)));
-                } else {
-                    resolve(<TokenResponse>tokenResponse);
-                }
-            });
-        });
-    }
-
-    public static async getGraphToken(session: AzureSession): Promise<TokenResponse> {
-        let refreshTokenResponse = await this.getRefreshToken(session);
-        return this.getResourceTokenFromRefreshToken(session.environment, refreshTokenResponse.refreshToken, session.tenantId, (<any>session.credentials).clientId, session.environment.activeDirectoryGraphResourceId);
-    }
-
-    public static generateAadApplicationName(accountName: string, projectName: string): string {
-        var spnLengthAllowed = 92;
-        var guid = uuid();
-        var projectName = projectName.replace(/[^a-zA-Z0-9_-]/g, "");
-        var accountName = accountName.replace(/[^a-zA-Z0-9_-]/g, "");
-        var spnName = accountName + "-" + projectName + "-" + guid;
-        if (spnName.length <= spnLengthAllowed) {
-            return spnName;
-        }
-
-        // 2 is subtracted for delimiter '-'
-        spnLengthAllowed = spnLengthAllowed - guid.length - 2;
-        if (accountName.length > spnLengthAllowed / 2 && projectName.length > spnLengthAllowed / 2) {
-            accountName = accountName.substr(0, spnLengthAllowed / 2);
-            projectName = projectName.substr(0, spnLengthAllowed - accountName.length);
-        }
-        else if (accountName.length > spnLengthAllowed / 2 && accountName.length + projectName.length > spnLengthAllowed) {
-            accountName = accountName.substr(0, spnLengthAllowed - projectName.length);
-        }
-        else if (projectName.length > spnLengthAllowed / 2 && accountName.length + projectName.length > spnLengthAllowed) {
-            projectName = projectName.substr(0, spnLengthAllowed - accountName.length);
-        }
-
-        return accountName + "-" + projectName + "-" + guid;
     }
 }

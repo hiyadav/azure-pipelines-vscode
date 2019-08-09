@@ -1,9 +1,8 @@
+import { PipelineTemplate, TargetResourceType, WizardInputs } from '../model/models';
 import * as fs from 'fs';
 import * as Mustache from 'mustache';
 import * as path from 'path';
 import * as Q from 'q';
-
-import { PipelineTemplate, TargetResourceType, WizardInputs } from '../model/models';
 
 export async function analyzeRepoAndListAppropriatePipeline(repoPath: string): Promise<PipelineTemplate[]> {
     // TO-DO: To populate the possible templates on the basis of azure target resource.

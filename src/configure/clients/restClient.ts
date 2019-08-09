@@ -9,7 +9,7 @@ export class RestClient extends ServiceClient {
         return new Promise<TResult>((resolve, reject) => {
             super.sendRequestWithHttpOperationResponse<TResult>(options)
                 .then((response) => {
-                    if (response.response.statusCode >= 400) {
+                    if (response.response.statusCode >= 300) {
                         reject(response.body);
                     }
                     resolve(response.body);

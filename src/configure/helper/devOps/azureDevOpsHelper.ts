@@ -1,8 +1,8 @@
+const uuid = require('uuid/v4');
+import { AzureDevOpsClient } from '../../clients/devOps/azureDevOpsClient';
+import { BuildDefinition, BuildDefinitionRepositoryProperties, Build } from '../../model/azureDevOps';
 import { Messages } from '../../messages';
 import { WizardInputs, RepositoryProvider } from '../../model/models';
-import { BuildDefinition, BuildDefinitionRepositoryProperties, Build } from '../../model/azureDevOps';
-import { AzureDevOpsClient } from '../../clients/devOps/azureDevOpsClient';
-const uuid = require('uuid/v4');
 import * as util from 'util';
 
 export class AzureDevOpsHelper {
@@ -56,19 +56,15 @@ export class AzureDevOpsHelper {
     }
 
     public async createAndRunPipeline(inputs: WizardInputs): Promise<string> {
-        return this.getBuildDefinitionPayload(inputs)
-        .then((buildDefinition) => {
-            return this.azureDevOpsClient.createBuildDefinition(inputs.organizationName, buildDefinition);
-        })
-        .then((definition) => {
-            return this.azureDevOpsClient.queueBuild(inputs.organizationName, this.getQueueBuildPayload(inputs, definition.id, definition.project.id));
-        })
-        .then((build) => {
-            return build && build._links.web.href;
-        })
-        .catch((error) => {
+        try {
+            let buildDefinitionPayload = await this.getBuildDefinitionPayload(inputs);
+            let definition = await this.azureDevOpsClient.createBuildDefinition(inputs.organizationName, buildDefinitionPayload);
+            let build = await this.azureDevOpsClient.queueBuild(inputs.organizationName, this.getQueueBuildPayload(inputs, definition.id, definition.project.id));
+            return build._links.web.href;
+        }
+        catch (error) {
             throw new Error(util.format(Messages.failedToCreateAzurePipeline, error.message));
-        });
+        }
     }
 
     private async getBuildDefinitionPayload(inputs: WizardInputs): Promise<BuildDefinition> {
