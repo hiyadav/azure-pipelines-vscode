@@ -6,7 +6,7 @@ import { WebAppKind } from '../../model/models';
 
 export class AppServiceClient extends AzureResourceClient {
 
-    private static apiVersion = '2019-05-01';
+    private static apiVersion = '2017-08-01';
     private static resourceType = 'Microsoft.Web/sites';
     constructor(credentials: ServiceClientCredentials, subscriptionId: string) {
         super(credentials, subscriptionId);

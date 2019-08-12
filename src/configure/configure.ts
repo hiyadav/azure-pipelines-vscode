@@ -119,7 +119,7 @@ class PipelineConfigurer {
 
 
     private async analyzeNode(node: any): Promise<void> {
-        if (node instanceof AzureTreeItem) {
+        if ((<AzureTreeItem>node) && (<AzureTreeItem>node).fullId) {
             await this.extractAzureResourceFromNode(node);
         }
         else if (node && node.fsPath) {
@@ -238,7 +238,7 @@ class PipelineConfigurer {
 
     private async getSelectedPipeline(): Promise<void> {
         let appropriatePipelines: PipelineTemplate[] = await vscode.window.withProgress(
-            { location: vscode.ProgressLocation.Notification, title: Messages.analyzingRepo }, 
+            { location: vscode.ProgressLocation.Notification, title: Messages.analyzingRepo },
             () => templateHelper.analyzeRepoAndListAppropriatePipeline(this.inputs.sourceRepository.localPath)
         );
 

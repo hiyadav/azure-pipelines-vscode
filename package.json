@@ -98,6 +98,13 @@
                     "command": "configure-pipeline",
                     "group": "Azure Pipelines"
                 }
+            ],
+            "view/item/context": [
+                {
+                    "command": "configure-pipeline",
+                    "when": "view == azureAppService && viewItem == appService",
+                    "group": "azurePipelines@1"
+                }
             ]
         }
     },
@@ -142,6 +149,7 @@
         "vscode-uri": "1.0.6"
     },
     "extensionDependencies": [
-        "ms-vscode.azure-account"
+        "ms-vscode.azure-account",
+        "ms-azuretools.vscode-azureappservice"
     ]
 }
