@@ -20,7 +20,7 @@ export class Messages {
     public static enterGitHubPat: string = 'Enter GitHub PAT token';
     public static failedToCreateAzureDevOpsProject: string = 'Failed to create project for Azure DevOps organization. Error: %s.';
     public static failedToCreateAzurePipeline: string = 'Failed to configure Azure pipeline. Error: %s';
-    public static githubPatTokenHelpMessage: string = 'GitHub PAT token with following permissions: full access of repository webhooks and services, read access to user profile data and email address, read and write access to all repositories data.';
+    public static githubPatTokenHelpMessage: string = 'GitHub PAT token with following permissions: full access of repository webhooks and services, read and write access to all repositories data.';
     public static modifyAndCommitFile: string = 'Modify and save your yaml file. %s will commit this file, push the branch \'%s\' to remote \'%s\' and proceed with deployment.';
     public static noAgentQueueFound: string = 'No Agent Queue found with pool name: %s';
     public static notAGitRepository: string = 'Selected workspace is not a [git](https://git-scm.com/docs/git) repository. Please select a git repository.';
