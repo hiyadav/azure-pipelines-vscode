@@ -296,4 +296,24 @@ export class AzureDevOpsClient {
             serializationMapper: null
         });
     }
+
+    public getAgentQueues(organizationName: string, projectName: string): Promise<Array<any>> {
+        let url = `${AzureDevOpsBaseUrl}/${organizationName}/${projectName}/_apis/distributedtask/queues`;
+
+        return this.restClient.sendRequest<any>(<UrlBasedRequestPrepareOptions>{
+            url: url,
+            method: "GET",
+            headers: {
+                "Accept": "application/json;"
+            },
+            queryParameters: {
+                "api-version": "5.1-preview.1"
+            },
+            serializationMapper: null,
+            deserializationMapper: null
+        })
+        .then((response) => {
+            return response.value;
+        });
+    }
 }
