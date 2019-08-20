@@ -6,9 +6,22 @@ export async function sleepForMilliSeconds(timeInMs: number): Promise<void> {
     });
 }
 
+export function generateDevOpsOrganizationName(userName: string, repositoryName: string): string {
+    let repoParts = repositoryName.split("/");
+    let repositoryNameSuffix = repoParts[repoParts.length-1];
+    repositoryNameSuffix = repositoryName.trim();
+    // Generate random 2 digit number
+    let uniqueId = Math.floor((Math.random()*90) + 10);
+
+    let organizationName = `${userName}-${repositoryNameSuffix}-${uniqueId}`;
+
+    // Name cannot start or end with whitespaces, cannot start with '-', cannot contain characters other than a-z|A-Z|0-9
+    return organizationName.trim().replace(/^[-]+/, '').replace(/[^a-zA-Z0-9-]/g, '');
+}
+
 export function generateDevOpsProjectName(repositoryName?: string): string {
     if(!repositoryName) {
-        return "AzurePipelinesProject";
+        return "AzurePipelines";
     }
 
     let repoParts = repositoryName.split("/");
@@ -17,7 +30,7 @@ export function generateDevOpsProjectName(repositoryName?: string): string {
     // project name cannot end with . or _
     suffix = suffix.replace(/\.[\.]*$/, '').replace(/^_[_]*$/, '');
 
-    let projectName = `AzurePipelinesProject.${suffix}`;
+    let projectName = `AzurePipelines-${suffix}`;
     if(projectName.length > 64) {
         projectName = projectName.substr(0, 64);
     }
