@@ -54,7 +54,7 @@ export class LocalGitRepoHelper {
         if (!status.tracking) {
             let remotes = await this.gitReference.getRemotes(false);
             if (remotes.length === 0) {
-                throw new Error(util.format(Messages.branchRemoteMissing, branch));
+                throw new Error(Messages.branchRemoteMissing);
             }
             else if(remotes.length === 1) {
                 remote = remotes[0].name;
