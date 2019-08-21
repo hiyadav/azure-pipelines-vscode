@@ -10,13 +10,16 @@ export function generateDevOpsOrganizationName(userName: string, repositoryName:
     let repoParts = repositoryName.split("/");
     let repositoryNameSuffix = repoParts[repoParts.length-1];
     repositoryNameSuffix = repositoryName.trim();
-    // Generate random 2 digit number
-    let uniqueId = Math.floor((Math.random()*90) + 10);
 
-    let organizationName = `${userName}-${repositoryNameSuffix}-${uniqueId}`;
+    let organizationName = `${userName}-${repositoryNameSuffix}`;
 
     // Name cannot start or end with whitespaces, cannot start with '-', cannot contain characters other than a-z|A-Z|0-9
-    return organizationName.trim().replace(/^[-]+/, '').replace(/[^a-zA-Z0-9-]/g, '');
+    organizationName = organizationName.trim().replace(/^[-]+/, '').replace(/[^a-zA-Z0-9-]/g, '');
+    if(organizationName.length > 50) {
+        organizationName = organizationName.substr(0, 50);
+    }
+    
+    return organizationName;
 }
 
 export function generateDevOpsProjectName(repositoryName?: string): string {

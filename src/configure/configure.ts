@@ -235,7 +235,6 @@ class PipelineConfigurer {
                 if(validationErrorMessage) {
                     this.inputs.organizationName = await extensionVariables.ui.showInputBox({
                         placeHolder: Messages.enterAzureDevOpsOrganizationName,
-                        value: organizationName,
                         validateInput: (organizationName) => this.azureDevOpsClient.validateOrganizationName(organizationName)
                     });
                 }
