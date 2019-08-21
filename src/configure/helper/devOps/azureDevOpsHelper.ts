@@ -119,13 +119,19 @@ export class AzureDevOpsHelper {
 
     private async getAgentQueueId(organizationName: string, projectName: string, poolName: string): Promise<number> {
         let queues = await this.azureDevOpsClient.getAgentQueues(organizationName, projectName);
+        let queueId: number = queues.length > 0 ? queues[0].id : null;
 
         for(let queue of queues) {
             if(queue.pool && queue.pool.name && queue.pool.name.toLowerCase() === poolName.toLowerCase()) {
-                return queue.id;
+                queueId = queue.id;
+                break;
             }
         }
 
+        if(queueId) {
+            return queueId;
+        }
+        
         throw new Error(util.format(Messages.noAgentQueueFound, poolName));
     }
 
