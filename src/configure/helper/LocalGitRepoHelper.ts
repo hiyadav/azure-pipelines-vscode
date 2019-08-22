@@ -1,4 +1,4 @@
-import { GitRepositoryParameters, GitRepositoryDetails } from '../model/models';
+import { GitRepositoryParameters, GitBranchDetails } from '../model/models';
 import { Messages } from '../resources/messages';
 import * as fs from 'fs';
 import * as git from 'simple-git/promise';
@@ -44,7 +44,7 @@ export class LocalGitRepoHelper {
         return deferred.promise;
     }
 
-    public async getGitRepositoryDetails(): Promise<GitRepositoryDetails> {
+    public async getGitBranchDetails(): Promise<GitBranchDetails> {
         let status = await this.gitReference.status();
         let branch = status.current;
         let remote = status.tracking ? status.tracking.substr(0, status.tracking.indexOf(branch) - 1) : null;
