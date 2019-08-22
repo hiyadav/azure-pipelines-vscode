@@ -193,10 +193,10 @@ class PipelineConfigurer {
     }
 
     private async setWorkspace(): Promise<void> {
-        if (vscode.workspace) {
+        let workspaceFolders = vscode.workspace && vscode.workspace.workspaceFolders;
+        if (workspaceFolders && workspaceFolders.length > 0) {
             this.telemetryHelper.setTelemetry(TelemetryKeys.SourceRepoLocation, Messages.selectWorkspaceFolder);
 
-            let workspaceFolders = vscode.workspace.workspaceFolders;
             if (workspaceFolders.length === 1) {
                 this.workspacePath = workspaceFolders[0].uri.fsPath;
             }
@@ -212,13 +212,13 @@ class PipelineConfigurer {
             }
         }
         else {
-            this.telemetryHelper.setTelemetry(TelemetryKeys.SourceRepoLocation, Messages.selectFolderOrRepository);
+            this.telemetryHelper.setTelemetry(TelemetryKeys.SourceRepoLocation, Messages.selectLabel);
             let selectedFolder: vscode.Uri[] = await vscode.window.showOpenDialog(
                 {
-                    openLabel: Messages.selectFolderOrRepository,
+                    openLabel: Messages.selectLabel,
                     canSelectFiles: false,
                     canSelectFolders: true,
-                    canSelectMany: false
+                    canSelectMany: false,
                 }
             );
             if (selectedFolder && selectedFolder.length > 0) {
@@ -296,7 +296,7 @@ class PipelineConfigurer {
 
     private async getGitHubToken(): Promise<string> {
         let githubPat = null;
-        this.telemetryHelper.execteFunctionWithTimeTelemetry(
+        await this.telemetryHelper.execteFunctionWithTimeTelemetry(
             async () => {
                 // TO-DO  Create a new helper function to time and log time for all user inputs.
                 // Log the time taken by the user to enter GitHub PAT
