@@ -35,7 +35,6 @@ export class Messages {
     public static resourceIdMissing: string = 'Required argument: resourceId, is missing. Kindly pass the argument for getting resource.';
     public static resourceTypeIsNotSupported: string = 'Resource of type: %s is not yet supported for configuring pipelines.';
     public static selectFolderOrRepository: string = 'Select the folder or repository to deploy';
-    public static selectLabel: string = 'Select';
     public static selectOrganization: string = 'Select Azure DevOps Organization';
     public static selectPathToAppSourceCode: string = 'Select the path to your application source code.';
     public static selectPipelineTemplate: string = 'Select Azure pipelines template...';
@@ -43,6 +42,7 @@ export class Messages {
     public static selectRemoteForBranch: string = 'Select the remote repository where you want to track your current branch';
     public static selectSubscription: string = 'Select Azure Subscription';
     public static selectWebApp: string = 'Select Web App';
+    public static selectWorkspaceFolder: string = 'Select a folder from your workspace to deploy';
     public static signInLabel: string = 'Sign In';
     public static unableToCreateAzureServiceConnection: string = `Unable to create azure service connection.\nOperation Status: %s\nMessage: %s\nService connection is not in ready state.`;
     public static unableToCreateGitHubServiceConnection: string =`Unable to create azure service connection.\nOperation Status: %s\nService connection is not in ready state.`;
