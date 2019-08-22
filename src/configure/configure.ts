@@ -300,8 +300,6 @@ class PipelineConfigurer {
         let githubPat = null;
         await this.telemetryHelper.execteFunctionWithTimeTelemetry(
             async () => {
-                // TO-DO  Create a new helper function to time and log time for all user inputs.
-                // Log the time taken by the user to enter GitHub PAT
                 githubPat = await this.controlProvider.showInputBox({ placeHolder: Messages.enterGitHubPat, prompt: Messages.githubPatTokenHelpMessage });
             },
             TelemetryKeys.GitHubPatDuration);
