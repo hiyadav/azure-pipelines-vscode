@@ -18,12 +18,12 @@ import * as path from 'path';
 import * as templateHelper from './helper/templateHelper';
 import * as utils from 'util';
 import * as vscode from 'vscode';
-import { TelemetryHelper, Result } from './helper/telemetryHelper';
+import {  Result, telemetryHelper } from './helper/telemetryHelper';
 import { ControlProvider } from './helper/controlProvider';
 
 const Layer: string = 'configure';
 
-export async function configurePipeline(telemetryHelper: TelemetryHelper, node: AzureTreeItem) {
+export async function configurePipeline(node: AzureTreeItem) {
     await telemetryHelper.execteFunctionWithTimeTelemetry(async () => {
         try {
             if (!(await extensionVariables.azureAccountExtensionApi.waitForLogin())) {
@@ -41,10 +41,7 @@ export async function configurePipeline(telemetryHelper: TelemetryHelper, node: 
                 }
             }
 
-            // Lof the user id using the extension
-            telemetryHelper.setTelemetry(TelemetryKeys.UserId, extensionVariables.azureAccountExtensionApi.sessions[0].userId);
-
-            var configurer = new PipelineConfigurer(telemetryHelper);
+            var configurer = new PipelineConfigurer();
             await configurer.configure(node);
         }
         catch (error) {
@@ -70,47 +67,45 @@ class PipelineConfigurer {
     private workspacePath: string;
     private uniqueResourceNameSuffix: string;
 
-    private telemetryHelper: TelemetryHelper;
     private controlProvider: ControlProvider;
 
-    public constructor(telemetryHelper: TelemetryHelper) {
+    public constructor() {
         this.inputs = new WizardInputs();
         this.inputs.azureSession = extensionVariables.azureAccountExtensionApi.sessions[0];
         this.azureDevOpsClient = new AzureDevOpsClient(this.inputs.azureSession.credentials);
         this.azureDevOpsHelper = new AzureDevOpsHelper(this.azureDevOpsClient);
         this.uniqueResourceNameSuffix = uuid().substr(0, 5);
-        this.telemetryHelper = telemetryHelper;
-        this.controlProvider = new ControlProvider(telemetryHelper);
+        this.controlProvider = new ControlProvider();
     }
 
     public async configure(node: any) {
-        this.telemetryHelper.setCurrentStep('GetAllRequiredInputs');
+        telemetryHelper.setCurrentStep('GetAllRequiredInputs');
         await this.getAllRequiredInputs(node);
 
-        this.telemetryHelper.setCurrentStep('CreatePreRequisites');
+        telemetryHelper.setCurrentStep('CreatePreRequisites');
         await this.createPreRequisites();
 
-        this.telemetryHelper.setCurrentStep('CheckInPipeline');
+        telemetryHelper.setCurrentStep('CheckInPipeline');
         await this.checkInPipelineFileToRepository();
 
-        this.telemetryHelper.setCurrentStep('CreateAndRunPipeline');
+        telemetryHelper.setCurrentStep('CreateAndRunPipeline');
         let queuedPipelineUrl = await vscode.window.withProgress<string>({ location: vscode.ProgressLocation.Notification, title: Messages.configuringPipelineAndDeployment }, async () => {
             try {
                 let pipelineName = `${this.inputs.targetResource.resource.name}-${this.uniqueResourceNameSuffix}`;
                 return await this.azureDevOpsHelper.createAndRunPipeline(pipelineName, this.inputs);
             }
             catch (error) {
-                this.telemetryHelper.logError(Layer, TracePoints.CreateAndQueuePipelineFailed, error);
+                telemetryHelper.logError(Layer, TracePoints.CreateAndQueuePipelineFailed, error);
                 throw error;
             }
 
         });
 
-        this.telemetryHelper.setCurrentStep('DisplayCreatedPipeline');
+        telemetryHelper.setCurrentStep('DisplayCreatedPipeline');
         vscode.window.showInformationMessage(Messages.pipelineSetupSuccessfully, Messages.browsePipeline)
             .then((action: string) => {
                 if (action && action.toLowerCase() === Messages.browsePipeline.toLowerCase()) {
-                    this.telemetryHelper.setTelemetry(TelemetryKeys.BrowsePipelineClicked, 'true');
+                    telemetryHelper.setTelemetry(TelemetryKeys.BrowsePipelineClicked, 'true');
                     vscode.env.openExternal(vscode.Uri.parse(queuedPipelineUrl));
                 }
             });
@@ -151,7 +146,7 @@ class PipelineConfigurer {
                             this.inputs.project.id = projectId;
                         })
                         .catch((error) => {
-                            this.telemetryHelper.logError(Layer, TracePoints.CreateNewOrganizationAndProjectFailure, error);
+                            telemetryHelper.logError(Layer, TracePoints.CreateNewOrganizationAndProjectFailure, error);
                             throw error;
                         });
                 });
@@ -170,7 +165,7 @@ class PipelineConfigurer {
         }
         else if (node && node.fsPath) {
             this.workspacePath = node.fsPath;
-            this.telemetryHelper.setTelemetry(TelemetryKeys.SourceRepoLocation, SourceOptions.CurrentWorkspace);
+            telemetryHelper.setTelemetry(TelemetryKeys.SourceRepoLocation, SourceOptions.CurrentWorkspace);
         }
     }
 
@@ -189,7 +184,7 @@ class PipelineConfigurer {
                     { placeHolder: Messages.selectFolderOrRepository }
                 );
 
-                this.telemetryHelper.setTelemetry(TelemetryKeys.SourceRepoLocation, selectedSourceOption.label);
+                telemetryHelper.setTelemetry(TelemetryKeys.SourceRepoLocation, selectedSourceOption.label);
                 switch (selectedSourceOption.label) {
                     case SourceOptions.BrowseLocalMachine:
                         let selectedFolder: vscode.Uri[] = await vscode.window.showOpenDialog(
@@ -218,7 +213,7 @@ class PipelineConfigurer {
             await this.getGitDetailsFromRepository(this.workspacePath);
         }
         catch (error) {
-            this.telemetryHelper.logError(Layer, TracePoints.GetSourceRepositoryDetailsFailed, error);
+            telemetryHelper.logError(Layer, TracePoints.GetSourceRepositoryDetailsFailed, error);
             throw error;
         }
     }
@@ -228,7 +223,7 @@ class PipelineConfigurer {
         this.inputs.sourceRepository = await this.localGitRepoHelper.getGitRepoDetails(workspacePath);
 
         // set telemetry
-        this.telemetryHelper.setTelemetry(TelemetryKeys.RepoProvider, this.inputs.sourceRepository.repositoryProvider);
+        telemetryHelper.setTelemetry(TelemetryKeys.RepoProvider, this.inputs.sourceRepository.repositoryProvider);
 
         if (this.inputs.sourceRepository.repositoryProvider === RepositoryProvider.AzureRepos) {
             let orgAndProjectName = AzureDevOpsHelper.getOrganizationAndProjectNameFromRepositoryUrl(this.inputs.sourceRepository.remoteUrl);
@@ -269,7 +264,7 @@ class PipelineConfigurer {
             }
         }
         catch (error) {
-            this.telemetryHelper.logError(Layer, TracePoints.ExtractAzureResourceFromNodeFailed, error);
+            telemetryHelper.logError(Layer, TracePoints.ExtractAzureResourceFromNodeFailed, error);
             throw error;
         }
     }
@@ -295,7 +290,7 @@ class PipelineConfigurer {
                     this.inputs.project = selectedProject.data;
                 }
                 else {
-                    this.telemetryHelper.setTelemetry(TelemetryKeys.NewOrganization, 'true');
+                    telemetryHelper.setTelemetry(TelemetryKeys.NewOrganization, 'true');
 
                     this.inputs.isNewOrganization = true;
                     let userName = this.inputs.azureSession.userId.substring(0, this.inputs.azureSession.userId.indexOf("@"));
@@ -315,7 +310,7 @@ class PipelineConfigurer {
             }
         }
         catch (error) {
-            this.telemetryHelper.logError(Layer, TracePoints.GetAzureDevOpsDetailsFailed, error);
+            telemetryHelper.logError(Layer, TracePoints.GetAzureDevOpsDetailsFailed, error);
             throw error;
         }
     }
@@ -334,7 +329,7 @@ class PipelineConfigurer {
         this.inputs.pipelineParameters.pipelineTemplate = appropriatePipelines.find((pipeline) => {
             return pipeline.label === selectedOption.label;
         });
-        this.telemetryHelper.setTelemetry(TelemetryKeys.ChosenTemplate, this.inputs.pipelineParameters.pipelineTemplate.label);
+        telemetryHelper.setTelemetry(TelemetryKeys.ChosenTemplate, this.inputs.pipelineParameters.pipelineTemplate.label);
     }
 
     private async getAzureResourceDetails(): Promise<void> {
@@ -364,7 +359,7 @@ class PipelineConfigurer {
 
         // Get GitHub PAT as an input from the user.
         let githubPat = null;
-        this.telemetryHelper.execteFunctionWithTimeTelemetry(
+        telemetryHelper.execteFunctionWithTimeTelemetry(
             async () => {
                 // TO-DO  Create a new helper function to time and log time for all user inputs.
                 // Log the time taken by the user to enter GitHub PAT
@@ -384,7 +379,7 @@ class PipelineConfigurer {
                     this.inputs.sourceRepository.serviceConnectionId = await this.serviceConnectionHelper.createGitHubServiceConnection(serviceConnectionName, githubPat);
                 }
                 catch (error) {
-                    this.telemetryHelper.logError(Layer, TracePoints.GitHubServiceConnectionError, error);
+                    telemetryHelper.logError(Layer, TracePoints.GitHubServiceConnectionError, error);
                     throw error;
                 }
             });
@@ -410,7 +405,7 @@ class PipelineConfigurer {
                     return await this.serviceConnectionHelper.createAzureServiceConnection(serviceConnectionName, this.inputs.azureSession.tenantId, this.inputs.targetResource.subscriptionId, scope, aadApp);
                 }
                 catch (error) {
-                    this.telemetryHelper.logError(Layer, TracePoints.AzureServiceConnectionCreateFailure, error);
+                    telemetryHelper.logError(Layer, TracePoints.AzureServiceConnectionCreateFailure, error);
                     throw error;
                 }
             });
@@ -425,7 +420,7 @@ class PipelineConfigurer {
             await vscode.window.showTextDocument(vscode.Uri.file(path.join(this.inputs.sourceRepository.localPath, this.inputs.pipelineParameters.pipelineFilePath)));
         }
         catch (error) {
-            this.telemetryHelper.logError(Layer, TracePoints.AddingContentToPipelineFileFailed, error);
+            telemetryHelper.logError(Layer, TracePoints.AddingContentToPipelineFileFailed, error);
             throw error;
         }
 
@@ -438,18 +433,18 @@ class PipelineConfigurer {
                         this.inputs.sourceRepository.commitId = await this.localGitRepoHelper.commitAndPushPipelineFile(this.inputs.pipelineParameters.pipelineFilePath, this.inputs.sourceRepository);
                     }
                     catch (error) {
-                        this.telemetryHelper.logError(Layer, TracePoints.CheckInPipelineFailure, error);
+                        telemetryHelper.logError(Layer, TracePoints.CheckInPipelineFailure, error);
                         throw (error);
                     }
                 });
             }
             else {
-                this.telemetryHelper.setTelemetry(TelemetryKeys.PipelineDiscarded, 'true');
+                telemetryHelper.setTelemetry(TelemetryKeys.PipelineDiscarded, 'true');
                 throw new UserCancelledError(Messages.operationCancelled);
             }
         }
         catch (error) {
-            this.telemetryHelper.logError(Layer, TracePoints.PipelineFileCheckInFailed, error);
+            telemetryHelper.logError(Layer, TracePoints.PipelineFileCheckInFailed, error);
             throw error;
         }
     }

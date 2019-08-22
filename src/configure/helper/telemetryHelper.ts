@@ -6,17 +6,17 @@ import * as logger from '../../logger';
 
 const uuid = require('uuid/v4');
 
-export class TelemetryHelper {
+class TelemetryHelper {
     private actionContext: IActionContext;
     private telemetryReporter: ITelemetryReporter;
     private journeyId: string;
     private command: string;
-    constructor(actionContext: IActionContext, command: string) {
+
+    public initializeHelper(actionContext: IActionContext, command: string) {
         this.actionContext = actionContext;
         this.telemetryReporter = extensionVariables.reporter;
         this.journeyId = uuid();
         this.command = command;
-        this.setTelemetry(TelemetryKeys.Command, command);
         this.setTelemetry(TelemetryKeys.JourneyId, this.journeyId);
     }
 
@@ -74,6 +74,7 @@ export class TelemetryHelper {
         }
     }
 }
+export let telemetryHelper = new TelemetryHelper();
 
 export enum Result {
     'Succeeded' = 'Succeeded',
