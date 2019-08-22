@@ -20,7 +20,6 @@ const configurePipelineEnabled: boolean = vscode.workspace.getConfiguration('[az
 
 export async function activate(context: vscode.ExtensionContext) {
     extensionVariables.reporter = createTelemetryReporter(context);
-    extensionVariables.reporter.sendTelemetryEvent('hiyadaPipelineExtension.Activated', { 'test': 'true' });
     registerUiVariables(context);
 
     await callWithTelemetryAndErrorHandling('azurePipelines.activate', async (activateContext: IActionContext) => {
