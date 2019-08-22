@@ -5,9 +5,9 @@ import { extensionVariables } from '../model/models';
 import { TelemetryKeys } from '../resources/telemetryKeys';
 
 export class ControlProvider {
-    public async showQuickPick<T extends QuickPickItem>(listItems: T[] | Thenable<T[]>, options: IAzureQuickPickOptions, itemCountTelemetryKey?: string): Promise<T> {
+    public async showQuickPick<T extends QuickPickItem>(listName: string, listItems: T[] | Thenable<T[]>, options: IAzureQuickPickOptions, itemCountTelemetryKey?: string): Promise<T> {
         try {
-            telemetryHelper.setTelemetry(TelemetryKeys.CurrentUserInput, options.placeHolder);
+            telemetryHelper.setTelemetry(TelemetryKeys.CurrentUserInput, listName);
             return await extensionVariables.ui.showQuickPick(listItems, options);
         }
         finally {
@@ -17,8 +17,8 @@ export class ControlProvider {
         }
     }
 
-    public async showInputBox(options: InputBoxOptions): Promise<string> {
-        telemetryHelper.setTelemetry(TelemetryKeys.CurrentUserInput, options.placeHolder);
+    public async showInputBox(inputName: string, options: InputBoxOptions): Promise<string> {
+        telemetryHelper.setTelemetry(TelemetryKeys.CurrentUserInput, inputName);
         return await extensionVariables.ui.showInputBox(options);
     }
 }

@@ -14,6 +14,7 @@ import { ServiceConnectionHelper } from './helper/devOps/serviceConnectionHelper
 import { SourceOptions, RepositoryProvider, extensionVariables, WizardInputs, WebAppKind, PipelineTemplate, QuickPickItemWithData } from './model/models';
 import { TracePoints } from './resources/tracePoints';
 import { TelemetryKeys } from './resources/telemetryKeys';
+import * as constants from './resources/constants';
 import * as path from 'path';
 import * as templateHelper from './helper/templateHelper';
 import * as utils from 'util';
@@ -66,7 +67,6 @@ class PipelineConfigurer {
     private appServiceClient: AppServiceClient;
     private workspacePath: string;
     private uniqueResourceNameSuffix: string;
-
     private controlProvider: ControlProvider;
 
     public constructor() {
@@ -180,6 +180,7 @@ class PipelineConfigurer {
                 sourceOptions.push({ label: SourceOptions.BrowseLocalMachine });
 
                 let selectedSourceOption = await this.controlProvider.showQuickPick(
+                    constants.SelectFolderOrRepository,
                     sourceOptions,
                     { placeHolder: Messages.selectFolderOrRepository }
                 );
@@ -277,12 +278,14 @@ class PipelineConfigurer {
 
                 if (devOpsOrganizations && devOpsOrganizations.length > 0) {
                     let selectedOrganization = await this.controlProvider.showQuickPick(
+                        constants.SelectOrganization,
                         devOpsOrganizations.map(x => { return { label: x.accountName }; }),
                         { placeHolder: Messages.selectOrganization },
                         TelemetryKeys.OrganizationListCount);
                     this.inputs.organizationName = selectedOrganization.label;
 
                     let selectedProject = await this.controlProvider.showQuickPick(
+                        constants.SelectProject,
                         this.azureDevOpsClient.listProjects(this.inputs.organizationName)
                         .then((projects) => projects.map(x => { return { label: x.name, data: x }; })),
                         { placeHolder: Messages.selectProject },
@@ -298,7 +301,9 @@ class PipelineConfigurer {
 
                     let validationErrorMessage = await this.azureDevOpsClient.validateOrganizationName(organizationName);
                     if(validationErrorMessage) {
-                        this.inputs.organizationName = await this.controlProvider.showInputBox({
+                        this.inputs.organizationName = await this.controlProvider.showInputBox(
+                        constants.EnterOrganizationName,
+                        {
                             placeHolder: Messages.enterAzureDevOpsOrganizationName,
                             validateInput: (organizationName) => this.azureDevOpsClient.validateOrganizationName(organizationName)
                         });
@@ -323,6 +328,7 @@ class PipelineConfigurer {
 
         // TO:DO- Get applicable pipelines for the repo type and azure target type if target already selected
         let selectedOption = await this.controlProvider.showQuickPick(
+            constants.SelectPipelineTemplate,
             appropriatePipelines.map((pipeline) => { return { label: pipeline.label }; }),
             { placeHolder: Messages.selectPipelineTemplate },
             TelemetryKeys.PipelineTempateListCount);
@@ -340,11 +346,12 @@ class PipelineConfigurer {
                 data: subscriptionObject
             };
         });
-        let selectedSubscription: QuickPickItemWithData = await this.controlProvider.showQuickPick(subscriptionList, { placeHolder: Messages.selectSubscription });
+        let selectedSubscription: QuickPickItemWithData = await this.controlProvider.showQuickPick(constants.SelectSubscription, subscriptionList, { placeHolder: Messages.selectSubscription });
         this.inputs.targetResource.subscriptionId = selectedSubscription.data.subscription.subscriptionId;
         // show available resources and get the chosen one
         this.appServiceClient = new AppServiceClient(extensionVariables.azureAccountExtensionApi.sessions[0].credentials, this.inputs.targetResource.subscriptionId);
         let selectedResource: QuickPickItemWithData = await this.controlProvider.showQuickPick(
+            constants.SelectWebApp,
             this.appServiceClient.GetAppServices(WebAppKind.WindowsApp)
             .then((webApps) => webApps.map(x => { return { label: x.name, data: x }; })),
             { placeHolder: Messages.selectWebApp },
@@ -363,7 +370,7 @@ class PipelineConfigurer {
             async () => {
                 // TO-DO  Create a new helper function to time and log time for all user inputs.
                 // Log the time taken by the user to enter GitHub PAT
-                githubPat = await this.controlProvider.showInputBox({ placeHolder: Messages.enterGitHubPat, prompt: Messages.githubPatTokenHelpMessage });
+                githubPat = await this.controlProvider.showInputBox(constants.GitHubPat, { placeHolder: Messages.enterGitHubPat, prompt: Messages.githubPatTokenHelpMessage });
             },
             TelemetryKeys.GitHubPatDuration);
 
