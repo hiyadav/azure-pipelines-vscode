@@ -12,7 +12,7 @@ class TelemetryHelper {
     private journeyId: string;
     private command: string;
 
-    public initializeHelper(actionContext: IActionContext, command: string) {
+    public initialize(actionContext: IActionContext, command: string) {
         this.actionContext = actionContext;
         this.telemetryReporter = extensionVariables.reporter;
         this.journeyId = uuid();
