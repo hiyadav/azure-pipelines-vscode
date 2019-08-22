@@ -5,7 +5,7 @@ export class Messages {
     public static appKindIsNotSupported: string = 'App of kind: %s is not yet supported.';
     public static azureAccountExntesionUnavailable: string = 'Azure-Account extension could not be fetched. Kindly check it is installed and activated.';
     public static azureLoginRequired: string = 'Kindly sign in to your Azure Account before going forward.';
-    public static branchRemoteMissing: string = `The branch: %s does not have any tracking branch and the selected repository has no remotes. Hence, we are unable to create a remote tracking branch. Kindly, [set a remote tracking branch](https://git-scm.com/docs/git-branch#Documentation/git-branch.txt---track) to procceed.`;
+    public static branchRemoteMissing: string = `The current branch does not have a remote tracking branch and the selected repository has no remotes. Kindly, [set a remote tracking branch](https://git-scm.com/docs/git-branch#Documentation/git-branch.txt---track) with [Azure Repos](https://docs.microsoft.com/en-us/azure/devops/repos/get-started) or [Github](https://guides.github.com/activities/hello-world/) to procceed.`;
     public static browsePipeline: string = 'Browse Pipeline';
     public static cannotAddFileRemoteMissing: string = 'Cannot add yml file to your git repository, remote is not set';
     public static cannotIdentifyRespositoryDetails: string = 'Could not identify repository details. Ensure your git repo is managed with [Azure Repos](https://docs.microsoft.com/en-us/azure/devops/repos/get-started) or [Github](https://guides.github.com/activities/hello-world/)';
@@ -30,7 +30,7 @@ export class Messages {
     public static operationTimedOut: string = 'Operation timed out.';
     public static organizationNameReservedMessage: string = 'The organization name %s is not available. Please try another organization name';
     public static organizationNameStaticValidationMessage: string = 'Organization names must start and end with a letter or number and can contain only letters, numbers, and hyphens';
-    public static pipelineSetupSuccessfully: string = 'Azure DevOps pipelines set up successfully !';
+    public static pipelineSetupSuccessfully: string = 'Azure DevOps pipeline set up successfully !';
     public static remoteRepositoryNotConfigured: string = 'Remote repository is not configured. Manage your git repository with [Azure Repos](https://docs.microsoft.com/en-us/azure/devops/repos/get-started) or [Github](https://guides.github.com/activities/hello-world/)';
     public static resourceIdMissing: string = 'Required argument: resourceId, is missing. Kindly pass the argument for getting resource.';
     public static resourceTypeIsNotSupported: string = 'Resource of type: %s is not yet supported for configuring pipelines.';

@@ -123,7 +123,7 @@ class PipelineConfigurer {
         if(this.inputs.sourceRepository.repositoryProvider === RepositoryProvider.Github) {
             this.inputs.githubPAT = await this.getGitHubToken();
         }
-        
+
         await this.getAzureDevOpsDetails();
         
         if (!this.inputs.targetResource.resource) {
@@ -238,7 +238,7 @@ class PipelineConfigurer {
             // Remote tracking branch is not set
             let remotes = await this.localGitRepoHelper.getGitRemotes();
             if (remotes.length === 0) {
-                throw new Error(utils.format(Messages.branchRemoteMissing, gitRepoDetails.branch));
+                throw new Error(Messages.branchRemoteMissing);
             }
             else if(remotes.length === 1) {
                 gitRepoDetails.remoteName = remotes[0].name;
