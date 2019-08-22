@@ -82,10 +82,10 @@ async function activateYmlContributor(context: vscode.ExtensionContext) {
             return schemacontributor.schemaContributor.requestCustomSchemaContent(uri);
         });
     })
-    .catch((reason) => {
-        logger.log(JSON.stringify(reason), 'ClientOnReadyError');
-        extensionVariables.reporter.sendTelemetryEvent('extension.languageserver.onReadyError', { 'reason': JSON.stringify(reason) });
-    });
+        .catch((reason) => {
+            logger.log(JSON.stringify(reason), 'ClientOnReadyError');
+            extensionVariables.reporter.sendTelemetryEvent('extension.languageserver.onReadyError', { 'reason': JSON.stringify(reason) });
+        });
 
     // TODO: Can we get rid of this since it's set in package.json?
     vscode.languages.setLanguageConfiguration('azure-pipelines', { wordPattern: /("(?:[^\\\"]*(?:\\.)?)*"?)|[^\s{}\[\],:]+/ });

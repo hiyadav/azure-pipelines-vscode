@@ -50,7 +50,7 @@ class TelemetryHelper {
                 'error': JSON.stringify(parsedError)
             });
 
-            logger.log(JSON.stringify(parsedError));
+        logger.log(JSON.stringify(parsedError));
     }
 
     public logInfo(layer: string, tracePoint: string, info: string) {
@@ -69,8 +69,8 @@ class TelemetryHelper {
         try {
             return await callback();
         }
-        finally{
-            this.setTelemetry(telemetryKey, ((Date.now() - startTime)/1000).toString());
+        finally {
+            this.setTelemetry(telemetryKey, ((Date.now() - startTime) / 1000).toString());
         }
     }
 }

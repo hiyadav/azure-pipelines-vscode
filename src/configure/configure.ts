@@ -19,7 +19,7 @@ import * as path from 'path';
 import * as templateHelper from './helper/templateHelper';
 import * as utils from 'util';
 import * as vscode from 'vscode';
-import {  Result, telemetryHelper } from './helper/telemetryHelper';
+import { Result, telemetryHelper } from './helper/telemetryHelper';
 import { ControlProvider } from './helper/controlProvider';
 
 const Layer: string = 'configure';
@@ -287,7 +287,7 @@ class PipelineConfigurer {
                     let selectedProject = await this.controlProvider.showQuickPick(
                         constants.SelectProject,
                         this.azureDevOpsClient.listProjects(this.inputs.organizationName)
-                        .then((projects) => projects.map(x => { return { label: x.name, data: x }; })),
+                            .then((projects) => projects.map(x => { return { label: x.name, data: x }; })),
                         { placeHolder: Messages.selectProject },
                         TelemetryKeys.ProjectListCount);
                     this.inputs.project = selectedProject.data;
@@ -300,13 +300,13 @@ class PipelineConfigurer {
                     let organizationName = generateDevOpsOrganizationName(userName, this.inputs.sourceRepository.repositoryName);
 
                     let validationErrorMessage = await this.azureDevOpsClient.validateOrganizationName(organizationName);
-                    if(validationErrorMessage) {
+                    if (validationErrorMessage) {
                         this.inputs.organizationName = await this.controlProvider.showInputBox(
-                        constants.EnterOrganizationName,
-                        {
-                            placeHolder: Messages.enterAzureDevOpsOrganizationName,
-                            validateInput: (organizationName) => this.azureDevOpsClient.validateOrganizationName(organizationName)
-                        });
+                            constants.EnterOrganizationName,
+                            {
+                                placeHolder: Messages.enterAzureDevOpsOrganizationName,
+                                validateInput: (organizationName) => this.azureDevOpsClient.validateOrganizationName(organizationName)
+                            });
                     }
                     else {
                         this.inputs.organizationName = organizationName;
@@ -353,7 +353,7 @@ class PipelineConfigurer {
         let selectedResource: QuickPickItemWithData = await this.controlProvider.showQuickPick(
             constants.SelectWebApp,
             this.appServiceClient.GetAppServices(WebAppKind.WindowsApp)
-            .then((webApps) => webApps.map(x => { return { label: x.name, data: x }; })),
+                .then((webApps) => webApps.map(x => { return { label: x.name, data: x }; })),
             { placeHolder: Messages.selectWebApp },
             TelemetryKeys.WebAppListCount);
         this.inputs.targetResource.resource = selectedResource.data;
