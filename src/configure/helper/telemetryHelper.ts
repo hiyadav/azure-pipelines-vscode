@@ -12,7 +12,7 @@ class TelemetryHelper {
     private journeyId: string;
     private command: string;
 
-    public initialize(actionContext: IActionContext, command: string) {
+    public initialize(actionContext: IActionContext, command: string): void {
         this.actionContext = actionContext;
         this.telemetryReporter = extensionVariables.reporter;
         this.journeyId = uuid();
@@ -20,13 +20,17 @@ class TelemetryHelper {
         this.setTelemetry(TelemetryKeys.JourneyId, this.journeyId);
     }
 
-    public setTelemetry(key: string, value: string) {
+    public getJourneyId(): string {
+        return this.journeyId;
+    }
+
+    public setTelemetry(key: string, value: string): void {
         if (key) {
             this.actionContext.telemetry.properties[key] = value;
         }
     }
 
-    public setResult(result: Result, error?: Error) {
+    public setResult(result: Result, error?: Error): void {
         this.actionContext.telemetry.properties.result = result;
         if (error) {
             let parsedError = parseError(error);
@@ -35,11 +39,11 @@ class TelemetryHelper {
         }
     }
 
-    public setCurrentStep(stepName: string) {
+    public setCurrentStep(stepName: string) : void{
         this.actionContext.telemetry.properties.cancelStep = stepName;
     }
 
-    public logError(layer: string, tracePoint: string, error: Error) {
+    public logError(layer: string, tracePoint: string, error: Error): void {
         let parsedError = parseError(error);
         this.telemetryReporter.sendTelemetryEvent(
             tracePoint,
@@ -53,7 +57,7 @@ class TelemetryHelper {
         logger.log(JSON.stringify(parsedError));
     }
 
-    public logInfo(layer: string, tracePoint: string, info: string) {
+    public logInfo(layer: string, tracePoint: string, info: string): void {
         this.telemetryReporter.sendTelemetryEvent(
             tracePoint,
             {
