@@ -27,7 +27,7 @@ export async function activate(context: vscode.ExtensionContext) {
         activateContext.telemetry.properties.isActivationEvent = 'true';
         telemetryHelper.initializeHelper(activateContext, 'activate');
         telemetryHelper.setTelemetry('configurePipelineEnabled', `${configurePipelineEnabled}`);
-        await telemetryHelper.execteFunctionWithTimeTelemetry(
+        await telemetryHelper.executeFunctionWithTimeTelemetry(
             async () => {
                 await activateYmlContributor(context);
                 if (configurePipelineEnabled) {

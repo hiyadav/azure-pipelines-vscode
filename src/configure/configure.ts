@@ -25,7 +25,7 @@ import { ControlProvider } from './helper/controlProvider';
 const Layer: string = 'configure';
 
 export async function configurePipeline(node: AzureTreeItem) {
-    await telemetryHelper.execteFunctionWithTimeTelemetry(async () => {
+    await telemetryHelper.executeFunctionWithTimeTelemetry(async () => {
         try {
             if (!(await extensionVariables.azureAccountExtensionApi.waitForLogin())) {
                 // set telemetry
@@ -366,7 +366,7 @@ class PipelineConfigurer {
 
         // Get GitHub PAT as an input from the user.
         let githubPat = null;
-        telemetryHelper.execteFunctionWithTimeTelemetry(
+        telemetryHelper.executeFunctionWithTimeTelemetry(
             async () => {
                 // TO-DO  Create a new helper function to time and log time for all user inputs.
                 // Log the time taken by the user to enter GitHub PAT

@@ -64,7 +64,7 @@ class TelemetryHelper {
             });
     }
 
-    public async execteFunctionWithTimeTelemetry<T>(callback: () => T, telemetryKey: string): Promise<T> {
+    public async executeFunctionWithTimeTelemetry<T>(callback: () => T, telemetryKey: string): Promise<T> {
         let startTime = Date.now();
         try {
             return await callback();
