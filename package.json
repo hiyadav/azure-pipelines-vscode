@@ -1,9 +1,9 @@
 {
-    "name": "azure-pipelines",
+    "name": "azure-pipelines-bugbash",
     "displayName": "Azure Pipelines",
     "description": "Syntax highlighting, IntelliSense, and more for Azure Pipelines YAML",
     "version": "1.157.0",
-    "publisher": "ms-azure-devops",
+    "publisher": "HimanshuYadav",
     "aiKey": "AIF-d9b70cd4-b9f9-4d70-929b-a071c400b217",
     "repository": {
         "type": "git",
