@@ -34,7 +34,7 @@ export class Messages {
     public static remoteRepositoryNotConfigured: string = 'Remote repository is not configured. Manage your git repository with [Azure Repos](https://docs.microsoft.com/en-us/azure/devops/repos/get-started) or [Github](https://guides.github.com/activities/hello-world/)';
     public static resourceIdMissing: string = 'Required argument: resourceId, is missing. Kindly pass the argument for getting resource.';
     public static resourceTypeIsNotSupported: string = 'Resource of type: %s is not yet supported for configuring pipelines.';
-    public static selectLabel: string = 'Select';
+    public static selectFolderLabel: string = 'Select folder to configuring pipeline';
     public static selectOrganization: string = 'Select Azure DevOps Organization';
     public static selectPathToAppSourceCode: string = 'Select the path to your application source code.';
     public static selectPipelineTemplate: string = 'Select Azure pipelines template...';

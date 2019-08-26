@@ -190,7 +190,7 @@ class PipelineConfigurer {
     private async setWorkspace(): Promise<void> {
         let workspaceFolders = vscode.workspace && vscode.workspace.workspaceFolders;
         if (workspaceFolders && workspaceFolders.length > 0) {
-            telemetryHelper.setTelemetry(TelemetryKeys.SourceRepoLocation, 'workspace');
+            telemetryHelper.setTelemetry(TelemetryKeys.SourceRepoLocation, SourceOptions.CurrentWorkspace);
 
             if (workspaceFolders.length === 1) {
                 telemetryHelper.setTelemetry(TelemetryKeys.MultipleWorkspaceFolders, 'false');
@@ -210,10 +210,10 @@ class PipelineConfigurer {
             }
         }
         else {
-            telemetryHelper.setTelemetry(TelemetryKeys.SourceRepoLocation, 'browse');
+            telemetryHelper.setTelemetry(TelemetryKeys.SourceRepoLocation, SourceOptions.BrowseLocalMachine);
             let selectedFolder: vscode.Uri[] = await vscode.window.showOpenDialog(
                 {
-                    openLabel: Messages.selectLabel,
+                    openLabel: Messages.selectFolderLabel,
                     canSelectFiles: false,
                     canSelectFolders: true,
                     canSelectMany: false,
