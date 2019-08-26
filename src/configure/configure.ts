@@ -31,7 +31,7 @@ export async function configurePipeline(node: AzureTreeItem) {
                 telemetryHelper.setTelemetry(TelemetryKeys.AzureLoginRequired, 'true');
 
                 let signIn = await vscode.window.showInformationMessage(Messages.azureLoginRequired, Messages.signInLabel);
-                if (signIn.toLowerCase() === Messages.signInLabel.toLowerCase()) {
+                if (signIn && signIn.toLowerCase() === Messages.signInLabel.toLowerCase()) {
                     await vscode.commands.executeCommand("azure-account.login");
                 }
                 else {
@@ -314,9 +314,9 @@ class PipelineConfigurer {
         try {
             let azureResource: GenericResource = await this.appServiceClient.getAppServiceResource((<AzureTreeItem>node).fullId);
 
-            switch (azureResource.type.toLowerCase()) {
+            switch (azureResource.type ? azureResource.type.toLowerCase() : '') {
                 case 'Microsoft.Web/sites'.toLowerCase():
-                    switch (azureResource.kind) {
+                    switch (azureResource.kind ? azureResource.kind.toLowerCase() : '') {
                         case WebAppKind.WindowsApp:
                             this.inputs.targetResource.resource = azureResource;
                             break;
