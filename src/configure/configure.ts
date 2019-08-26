@@ -115,7 +115,7 @@ class PipelineConfigurer {
         await this.getSourceRepositoryDetails();
         await this.getSelectedPipeline();
 
-        if(this.inputs.sourceRepository.repositoryProvider === RepositoryProvider.Github) {
+        if (this.inputs.sourceRepository.repositoryProvider === RepositoryProvider.Github) {
             this.inputs.githubPATToken = await this.getGitHubPATToken();
         }
 
@@ -232,13 +232,13 @@ class PipelineConfigurer {
         this.localGitRepoHelper = await LocalGitRepoHelper.GetHelperInstance(this.workspacePath);
         let gitBranchDetails = await this.localGitRepoHelper.getGitBranchDetails();
 
-        if(!gitBranchDetails.remoteName) {
+        if (!gitBranchDetails.remoteName) {
             // Remote tracking branch is not set
             let remotes = await this.localGitRepoHelper.getGitRemotes();
             if (remotes.length === 0) {
                 throw new Error(Messages.branchRemoteMissing);
             }
-            else if(remotes.length === 1) {
+            else if (remotes.length === 1) {
                 gitBranchDetails.remoteName = remotes[0].name;
             }
             else {
@@ -487,7 +487,7 @@ class PipelineConfigurer {
             });
     }
 
-    private async checkInPipelineFileToRepository() {
+    private async checkInPipelineFileToRepository(): Promise<void> {
         try {
             this.inputs.pipelineParameters.pipelineFilePath = await this.localGitRepoHelper.addContentToFile(
                 await templateHelper.renderContent(this.inputs.pipelineParameters.pipelineTemplate.path, this.inputs),
@@ -501,22 +501,24 @@ class PipelineConfigurer {
         }
 
         try {
-            let commitOrDiscard = await vscode.window.showInformationMessage(utils.format(Messages.modifyAndCommitFile, Messages.commitAndPush, this.inputs.sourceRepository.branch, this.inputs.sourceRepository.remoteName), Messages.commitAndPush, Messages.discardPipeline);
-            if (commitOrDiscard && commitOrDiscard.toLowerCase() === Messages.commitAndPush.toLowerCase()) {
-                await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: Messages.configuringPipelineAndDeployment }, async (progress) => {
-                    try {
-                        // handle when the branch is not upto date with remote branch and push fails
-                        this.inputs.sourceRepository.commitId = await this.localGitRepoHelper.commitAndPushPipelineFile(this.inputs.pipelineParameters.pipelineFilePath, this.inputs.sourceRepository);
-                    }
-                    catch (error) {
-                        telemetryHelper.logError(Layer, TracePoints.CheckInPipelineFailure, error);
-                        throw (error);
-                    }
-                });
-            }
-            else {
-                telemetryHelper.setTelemetry(TelemetryKeys.PipelineDiscarded, 'true');
-                throw new UserCancelledError(Messages.operationCancelled);
+            while (!this.inputs.sourceRepository.commitId) {
+                let commitOrDiscard = await vscode.window.showInformationMessage(utils.format(Messages.modifyAndCommitFile, Messages.commitAndPush, this.inputs.sourceRepository.branch, this.inputs.sourceRepository.remoteName), Messages.commitAndPush, Messages.discardPipeline);
+                if (commitOrDiscard && commitOrDiscard.toLowerCase() === Messages.commitAndPush.toLowerCase()) {
+                    await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: Messages.configuringPipelineAndDeployment }, async (progress) => {
+                        try {
+                            // handle when the branch is not upto date with remote branch and push fails
+                            this.inputs.sourceRepository.commitId = await this.localGitRepoHelper.commitAndPushPipelineFile(this.inputs.pipelineParameters.pipelineFilePath, this.inputs.sourceRepository);
+                        }
+                        catch (error) {
+                            telemetryHelper.logError(Layer, TracePoints.CheckInPipelineFailure, error);
+                            vscode.window.showErrorMessage(utils.format(Messages.commitFailedErrorMessage, error.message));
+                        }
+                    });
+                }
+                else {
+                    telemetryHelper.setTelemetry(TelemetryKeys.PipelineDiscarded, 'true');
+                    throw new UserCancelledError(Messages.operationCancelled);
+                }
             }
         }
         catch (error) {
