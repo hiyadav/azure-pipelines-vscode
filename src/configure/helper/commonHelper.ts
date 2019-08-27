@@ -9,7 +9,7 @@ export async function sleepForMilliSeconds(timeInMs: number): Promise<void> {
 export function generateDevOpsOrganizationName(userName: string, repositoryName: string): string {
     let repoParts = repositoryName.split("/");
     let repositoryNameSuffix = repoParts[repoParts.length-1];
-    repositoryNameSuffix = repositoryName.trim();
+    repositoryNameSuffix = repositoryNameSuffix.trim();
 
     let organizationName = `${userName}-${repositoryNameSuffix}`;
 
