@@ -265,7 +265,7 @@ class PipelineConfigurer {
                 return <GitRepositoryParameters>{
                     repositoryProvider: RepositoryProvider.AzureRepos,
                     repositoryId: "",
-                    repositoryName: AzureDevOpsHelper.getRepositoryNameFromRemoteUrl(remoteUrl),
+                    repositoryName: AzureDevOpsHelper.getRepositoryDetailsFromRemoteUrl(remoteUrl).repositoryName,
                     remoteName: gitRepositoryDetails.remoteName,
                     remoteUrl: remoteUrl,
                     branch: gitRepositoryDetails.branch,
@@ -340,9 +340,9 @@ class PipelineConfigurer {
     private async getAzureDevOpsDetails(): Promise<void> {
         try {
             if (this.inputs.sourceRepository.repositoryProvider === RepositoryProvider.AzureRepos) {
-                let orgAndProjectName = AzureDevOpsHelper.getOrganizationAndProjectNameFromRepositoryUrl(this.inputs.sourceRepository.remoteUrl);
-                this.inputs.organizationName = orgAndProjectName.orgnizationName;
-                this.azureDevOpsClient.getRepository(this.inputs.organizationName, orgAndProjectName.projectName, this.inputs.sourceRepository.repositoryName)
+                let repoDetails = AzureDevOpsHelper.getRepositoryDetailsFromRemoteUrl(this.inputs.sourceRepository.remoteUrl);
+                this.inputs.organizationName = repoDetails.orgnizationName;
+                this.azureDevOpsClient.getRepository(this.inputs.organizationName, repoDetails.projectName, this.inputs.sourceRepository.repositoryName)
                     .then((repository) => {
                         this.inputs.sourceRepository.repositoryId = repository.id;
                         this.inputs.project = {
