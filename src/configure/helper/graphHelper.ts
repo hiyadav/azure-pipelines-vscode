@@ -142,15 +142,15 @@ export class GraphHelper {
             deserializationMapper: null,
             serializationMapper: null
         })
-            .then((data) => {
-                return <AadApplication>{
-                    appId: data.appId,
-                    secret: secret
-                };
-            });
+        .then((data) => {
+            return <AadApplication>{
+                appId: data.appId,
+                secret: secret
+            };
+        });
     }
 
-    private static async createSpn(graphClient: RestClient, appId: string, tenantId: string, retries: number = 0): Promise<any> {
+    private static async createSpn(graphClient: RestClient, appId: string, tenantId: string): Promise<any> {
         let createSpnPromise = () => {
             return graphClient.sendRequest<any>(<UrlBasedRequestPrepareOptions>{
                 url: `https://graph.windows.net/${tenantId}/servicePrincipals`,
@@ -170,10 +170,14 @@ export class GraphHelper {
             });
         };
 
-        return executeFunctionWithRetry(createSpnPromise, GraphHelper.retryCount, GraphHelper.retryTimeoutInSec, GraphHelper.retryTimeIntervalInSec, Messages.azureServicePrincipalFailedMessage);
+        return executeFunctionWithRetry(
+            createSpnPromise,
+            GraphHelper.retryCount,
+            GraphHelper.retryTimeIntervalInSec,
+            Messages.azureServicePrincipalFailedMessage);
     }
 
-    private static async createRoleAssignment(credentials: ServiceClientCredentials, scope: string, objectId: string, retries: number = 0): Promise<any> {
+    private static async createRoleAssignment(credentials: ServiceClientCredentials, scope: string, objectId: string): Promise<any> {
         let restClient = new RestClient(credentials);
         let roleDefinitionId = `${scope}/providers/Microsoft.Authorization/roleDefinitions/${this.contributorRoleId}`;
         let guid = uuid();
@@ -198,6 +202,10 @@ export class GraphHelper {
             });
         };
 
-        return executeFunctionWithRetry(roleAssignementFunction, GraphHelper.retryCount, GraphHelper.retryTimeoutInSec, GraphHelper.retryTimeIntervalInSec, Messages.roleAssignmentFailedMessage);
+        return executeFunctionWithRetry(
+            roleAssignementFunction,
+            GraphHelper.retryCount,
+            GraphHelper.retryTimeIntervalInSec,
+            Messages.roleAssignmentFailedMessage);
     }
 }

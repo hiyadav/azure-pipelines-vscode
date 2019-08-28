@@ -69,34 +69,23 @@ export function stringCompareFunction(a: string, b: string): number {
     return 0;
 }
 
-export async function executeFunctionWithRetry(func: () => Promise<any>, retryCount: number = 100, retryTimeoutInSec: number = 300, retryIntervalTimeInSec: number = 2, errorMessage?: string): Promise<any> {
-    let internalErrorMessage = '';
-    let functionExecutionPromise = Q.Promise(async (resolve, reject) => {
-        let result = null;
+export async function executeFunctionWithRetry(
+    func: () => Promise<any>,
+    retryCount: number = 100,
+    retryIntervalTimeInSec: number = 2,
+    errorMessage?: string): Promise<any> {
+        let internalError = null;
         for (;retryCount > 0; retryCount--) {
             try {
-                result = await func();
-                resolve(result);
-                break;
+                let result = await func();
+                return result;
             }
             catch (error) {
-                internalErrorMessage = errorMessage ? errorMessage.concat(' Internal Error: ', JSON.stringify(error)) : JSON.stringify(error);
-                setTimeout(() => {
-                    // do nothing
-                },
-                retryIntervalTimeInSec * 1000);
+                internalError = error;
+                console.log(JSON.stringify(error));
+                await Q.delay((resolve) => {resolve();}, retryIntervalTimeInSec * 1000);
             }
         }
 
-        if (retryCount <= 0 && !result) {
-            reject(internalErrorMessage);
-        }
-    });
-
-    return await Q.timeout(functionExecutionPromise, retryTimeoutInSec * 1000, 'Timed out')
-    .catch((error) => {
-        if (error && error.message === 'Timed out') {
-            throw errorMessage ? errorMessage.concat(util.format(Messages.retryFailedMessage, retryTimeoutInSec, internalErrorMessage)): util.format(Messages.retryFailedMessage, retryTimeoutInSec, internalErrorMessage);
-        }
-    });
+        throw errorMessage ? errorMessage.concat(util.format(Messages.retryFailedMessage, retryCount, JSON.stringify(internalError))): util.format  (Messages.retryFailedMessage, retryCount, JSON.stringify(internalError));
 }
