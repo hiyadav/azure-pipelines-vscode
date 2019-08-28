@@ -11,7 +11,6 @@ import * as util from 'util';
 export class GraphHelper {
 
     private static contributorRoleId = "b24988ac-6180-42a0-ab88-20f7382dd24c";
-    private static retryTimeoutInSec = 300;
     private static retryTimeIntervalInSec = 2;
     private static retryCount = 100;
 
