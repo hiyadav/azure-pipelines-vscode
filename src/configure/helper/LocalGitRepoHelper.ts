@@ -6,6 +6,8 @@ import * as path from 'path';
 import * as Q from 'q';
 import * as vscode from 'vscode';
 import { RemoteWithoutRefs } from 'simple-git/typings/response';
+import {AzureDevOpsHelper} from './devOps/azureDevOpsHelper';
+import {GitHubProvider} from './gitHubHelper';
 
 export class LocalGitRepoHelper {
     private gitReference: git.SimpleGit;
@@ -68,6 +70,12 @@ export class LocalGitRepoHelper {
             }
         }
 
+        if (AzureDevOpsHelper.isAzureReposUrl(<string>remoteUrl)) {
+            remoteUrl = AzureDevOpsHelper.getFormattedRemoteUrl(<string>remoteUrl);
+        }
+        else if (GitHubProvider.isGitHubUrl(<string>remoteUrl)) {
+            remoteUrl = GitHubProvider.getFormattedRemoteUrl(<string>remoteUrl);
+        }
         return remoteUrl;
     }
 
