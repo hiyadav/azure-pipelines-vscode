@@ -1,6 +1,7 @@
 import * as util from 'util';
 import { Messages } from '../resources/messages';
 import Q = require('q');
+import * as logger from '../../logger';
 
 export async function sleepForMilliSeconds(timeInMs: number): Promise<void> {
     return new Promise((resolve) => {
@@ -82,7 +83,7 @@ export async function executeFunctionWithRetry(
             }
             catch (error) {
                 internalError = error;
-                console.log(JSON.stringify(error));
+                logger.log(JSON.stringify(error));
                 await Q.delay((resolve) => {resolve();}, retryIntervalTimeInSec * 1000);
             }
         }
