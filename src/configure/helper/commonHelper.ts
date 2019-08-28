@@ -1,3 +1,7 @@
+import * as util from 'util';
+import { Messages } from '../resources/messages';
+import Q = require('q');
+
 export async function sleepForMilliSeconds(timeInMs: number): Promise<void> {
     return new Promise((resolve) => {
         setTimeout(() => {
@@ -18,7 +22,7 @@ export function generateDevOpsOrganizationName(userName: string, repositoryName:
     if(organizationName.length > 50) {
         organizationName = organizationName.substr(0, 50);
     }
-    
+
     return organizationName;
 }
 
@@ -63,4 +67,36 @@ export function stringCompareFunction(a: string, b: string): number {
         return 1;
     }
     return 0;
+}
+
+export async function executeFunctionWithRetry(func: () => Promise<any>, retryCount: number = 100, retryTimeoutInSec: number = 300, retryIntervalTimeInSec: number = 2, errorMessage?: string): Promise<any> {
+    let internalErrorMessage = '';
+    let functionExecutionPromise = Q.Promise(async (resolve, reject) => {
+        let result = null;
+        for (;retryCount > 0; retryCount--) {
+            try {
+                result = await func();
+                resolve(result);
+                break;
+            }
+            catch (error) {
+                internalErrorMessage = errorMessage ? errorMessage.concat(' Internal Error: ', JSON.stringify(error)) : JSON.stringify(error);
+                setTimeout(() => {
+                    // do nothing
+                },
+                retryIntervalTimeInSec * 1000);
+            }
+        }
+
+        if (retryCount <= 0 && !result) {
+            reject(internalErrorMessage);
+        }
+    });
+
+    return await Q.timeout(functionExecutionPromise, retryTimeoutInSec * 1000, 'Timed out')
+    .catch((error) => {
+        if (error && error.message === 'Timed out') {
+            throw errorMessage ? errorMessage.concat(util.format(Messages.retryFailedMessage, retryTimeoutInSec, internalErrorMessage)): util.format(Messages.retryFailedMessage, retryTimeoutInSec, internalErrorMessage);
+        }
+    });
 }

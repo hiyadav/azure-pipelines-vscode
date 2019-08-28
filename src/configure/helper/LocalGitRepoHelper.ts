@@ -60,7 +60,8 @@ export class LocalGitRepoHelper {
     }
 
     public async getGitRemoteUrl(remoteName: string): Promise<string|void> {
-        return this.gitReference.remote(["get-url", remoteName]);
+        let remoteUrl = await this.gitReference.remote(["get-url", remoteName]);
+        return remoteUrl ? (<string>remoteUrl).trim() : remoteUrl;
     }
 
     /**
