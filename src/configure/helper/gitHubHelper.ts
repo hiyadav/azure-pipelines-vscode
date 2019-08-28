@@ -22,12 +22,6 @@ export class GitHubProvider {
             endCount = remoteUrl.length;
         }
 
-        let repositoryId = remoteUrl.substring(GitHubProvider.GitHubUrl.length, endCount);
-        // remove trailing slashes in case user used URL from browser as remote url
-        if (repositoryId[repositoryId.length - 1] === '/') {
-            repositoryId = repositoryId.substr(0, repositoryId.length - 1);
-        }
-
-        return repositoryId;
+        return remoteUrl.substring(GitHubProvider.GitHubUrl.length, endCount);
     }
 }
