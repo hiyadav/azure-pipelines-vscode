@@ -12,7 +12,7 @@ export class GraphHelper {
 
     private static contributorRoleId = "b24988ac-6180-42a0-ab88-20f7382dd24c";
     private static retryTimeIntervalInSec = 2;
-    private static retryCount = 100;
+    private static retryCount = 20;
 
     public static async createSpnAndAssignRole(session: AzureSession, aadAppName: string, scope: string): Promise<AadApplication> {
         let graphCredentials = await this.getGraphToken(session);

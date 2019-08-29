@@ -72,7 +72,7 @@ export function stringCompareFunction(a: string, b: string): number {
 
 export async function executeFunctionWithRetry(
     func: () => Promise<any>,
-    retryCount: number = 100,
+    retryCount: number = 20,
     retryIntervalTimeInSec: number = 2,
     errorMessage?: string): Promise<any> {
         let internalError = null;
