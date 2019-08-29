@@ -16,7 +16,5 @@ export function log(message: string, event?: string){
     }
 
     logMessage += `${message}`;
-
-    console.log(logMessage);
     extensionVariables.outputChannel.appendLine(logMessage);
 }
