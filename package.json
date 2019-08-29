@@ -1,6 +1,6 @@
 {
-    "name": "azure-pipelines-bugbash",
-    "displayName": "bugbash pipelines extension",
+    "name": "devops-pipelines",
+    "displayName": "DevOps Pipelines",
     "description": "Syntax highlighting, IntelliSense, and more for Azure Pipelines YAML",
     "version": "1.157.0",
     "publisher": "HimanshuYadav",
