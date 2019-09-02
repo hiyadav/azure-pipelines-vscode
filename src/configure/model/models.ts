@@ -17,11 +17,16 @@ class ExtensionVariables implements UIExtensionVariables {
 let extensionVariables = new ExtensionVariables();
 export { extensionVariables };
 
-export interface  AzureAccountExtensionExports {
+export interface AzureAccountExtensionExports {
     sessions: AzureSession[];
-    subscriptions: { session: AzureSession, subscription: SubscriptionModels.Subscription }[];
+    subscriptions: SubscriptionSession[];
     filters: { session: AzureSession, subscription: SubscriptionModels.Subscription }[];
     waitForLogin: () => Promise<boolean>;
+}
+
+export interface SubscriptionSession {
+    session: AzureSession;
+    subscription: SubscriptionModels.Subscription;
 }
 
 export class WizardInputs {
@@ -109,7 +114,7 @@ export enum ServiceConnectionType {
 export enum WebAppKind {
     WindowsApp = 'app',
     FunctionApp = 'functionapp',
-    LinuxApp ='app,linux',
+    LinuxApp = 'app,linux',
     LinuxContainerApp = 'app,linux,container'
 }
 

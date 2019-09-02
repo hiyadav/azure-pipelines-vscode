@@ -18,6 +18,9 @@ class TelemetryHelper {
         this.journeyId = uuid();
         this.command = command;
         this.setTelemetry(TelemetryKeys.JourneyId, this.journeyId);
+        if (process.env.DEBUG_MODE === "true") {
+            this.setTelemetry(TelemetryKeys.UserType, "test");
+        }
     }
 
     public getJourneyId(): string {
@@ -39,7 +42,7 @@ class TelemetryHelper {
         }
     }
 
-    public setCurrentStep(stepName: string) : void{
+    public setCurrentStep(stepName: string): void {
         this.actionContext.telemetry.properties.cancelStep = stepName;
     }
 

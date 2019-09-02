@@ -25,11 +25,11 @@ export async function activate(context: vscode.ExtensionContext) {
     await callWithTelemetryAndErrorHandling('azurePipelines.activate', async (activateContext: IActionContext) => {
         activateContext.telemetry.properties.isActivationEvent = 'true';
         telemetryHelper.initialize(activateContext, 'activate');
-        telemetryHelper.setTelemetry('configurePipelineEnabled', `${configurePipelineEnabled}`);
         await telemetryHelper.executeFunctionWithTimeTelemetry(
             async () => {
                 await activateYmlContributor(context);
                 if (configurePipelineEnabled) {
+                    telemetryHelper.setTelemetry('configurePipelineEnabled', `${configurePipelineEnabled}`);
                     await activateConfigurePipeline();
                 }
             },
