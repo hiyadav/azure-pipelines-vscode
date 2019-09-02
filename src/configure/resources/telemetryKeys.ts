@@ -1,5 +1,6 @@
 export class TelemetryKeys {
     public static CurrentUserInput: string = 'currentUserInput';
+    public static UserType: string = "userType";
     public static RepoProvider: string = 'repoProvider';
     public static AzureLoginRequired: string = 'azureLoginRequired';
     public static JourneyId: string = 'journeyId';
