@@ -1,8 +1,9 @@
-import { extensionVariables, SubscriptionSession } from "../model/models";
+import { extensionVariables, AzureSession } from "../model/models";
+import { SubscriptionModels } from "azure-arm-resource";
 
-export function getSubscriptionSession(subscriptionId: string): SubscriptionSession {
-    let currentSubscription: SubscriptionSession = extensionVariables.azureAccountExtensionApi.subscriptions
-        .find((subscription: SubscriptionSession) =>
+export function getSubscriptionSession(subscriptionId: string): AzureSession {
+    let currentSubscription: { session: AzureSession, subscription: SubscriptionModels.Subscription } = extensionVariables.azureAccountExtensionApi.subscriptions
+        .find((subscription) =>
             subscription.subscription.subscriptionId.toLowerCase() === subscriptionId.toLowerCase());
 
     // Fallback to first element
@@ -10,5 +11,5 @@ export function getSubscriptionSession(subscriptionId: string): SubscriptionSess
         currentSubscription = extensionVariables.azureAccountExtensionApi.subscriptions[0];
     }
 
-    return currentSubscription;
+    return currentSubscription.session;
 }

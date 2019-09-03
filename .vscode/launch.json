@@ -15,10 +15,7 @@
             ],
             "outFiles": [
                 "${workspaceFolder}/out/**/*.js"
-            ],
-            "env": {
-                "DEBUG_MODE": "true"
-            }
+            ]
         },
         {
             "name": "Extension Tests",

@@ -19,14 +19,9 @@ export { extensionVariables };
 
 export interface AzureAccountExtensionExports {
     sessions: AzureSession[];
-    subscriptions: SubscriptionSession[];
+    subscriptions: { session: AzureSession, subscription: SubscriptionModels.Subscription }[];
     filters: { session: AzureSession, subscription: SubscriptionModels.Subscription }[];
     waitForLogin: () => Promise<boolean>;
-}
-
-export interface SubscriptionSession {
-    session: AzureSession;
-    subscription: SubscriptionModels.Subscription;
 }
 
 export class WizardInputs {
@@ -50,6 +45,7 @@ export class Organization {
     accountName: string;
     accountUri: string;
     properties: {};
+    isMSAOrg: boolean;
 }
 
 export class AzureSession {
