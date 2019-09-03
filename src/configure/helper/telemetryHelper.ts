@@ -18,9 +18,6 @@ class TelemetryHelper {
         this.journeyId = uuid();
         this.command = command;
         this.setTelemetry(TelemetryKeys.JourneyId, this.journeyId);
-        if (process.env.DEBUG_MODE === "true") {
-            this.setTelemetry(TelemetryKeys.UserType, "test");
-        }
     }
 
     public getJourneyId(): string {

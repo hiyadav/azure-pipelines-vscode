@@ -320,7 +320,7 @@ class PipelineConfigurer {
 
     private async extractAzureResourceFromNode(node: any): Promise<void> {
         this.inputs.targetResource.subscriptionId = node.root.subscriptionId;
-        this.inputs.azureSession = getSubscriptionSession(this.inputs.targetResource.subscriptionId).session;
+        this.inputs.azureSession = getSubscriptionSession(this.inputs.targetResource.subscriptionId);
         this.appServiceClient = new AppServiceClient(this.inputs.azureSession.credentials, this.inputs.targetResource.subscriptionId);
 
         try {
@@ -432,15 +432,16 @@ class PipelineConfigurer {
 
     private async getAzureResourceDetails(): Promise<void> {
         // show available subscriptions and get the chosen one
-        let subscriptionList = extensionVariables.azureAccountExtensionApi.subscriptions.map((subscriptionObject) => {
+        let subscriptionList = extensionVariables.azureAccountExtensionApi.filters.map((subscriptionObject) => {
             return <QuickPickItemWithData>{
-                label: `${<string>subscriptionObject.subscription.displayName} (${<string>subscriptionObject.subscription.subscriptionId})`,
-                data: subscriptionObject
+                label: `${<string>subscriptionObject.subscription.displayName}`,
+                data: subscriptionObject,
+                description: `${<string>subscriptionObject.subscription.subscriptionId}`
             };
         });
         let selectedSubscription: QuickPickItemWithData = await this.controlProvider.showQuickPick(constants.SelectSubscription, subscriptionList, { placeHolder: Messages.selectSubscription });
         this.inputs.targetResource.subscriptionId = selectedSubscription.data.subscription.subscriptionId;
-        this.inputs.azureSession = getSubscriptionSession(this.inputs.targetResource.subscriptionId).session;
+        this.inputs.azureSession = getSubscriptionSession(this.inputs.targetResource.subscriptionId);
 
         // show available resources and get the chosen one
         this.appServiceClient = new AppServiceClient(this.inputs.azureSession.credentials, this.inputs.targetResource.subscriptionId);
