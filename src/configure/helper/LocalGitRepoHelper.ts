@@ -97,9 +97,9 @@ export class LocalGitRepoHelper {
      * @param pipelineYamlPath : local path of yaml pipeline in the repository
      * @returns: thenable string which resolves to commitId once commit is pushed to remote branch, and failure message if unsuccessful
      */
-    public async commitAndPushPipelineFile(pipelineYamlPath: string, repositoryDetails: GitRepositoryParameters): Promise<string> {
+    public async commitAndPushPipelineFile(pipelineYamlPath: string, message: string, repositoryDetails: GitRepositoryParameters): Promise<string> {
         await this.gitReference.add(pipelineYamlPath);
-        await this.gitReference.commit(Messages.addYmlFile, pipelineYamlPath);
+        await this.gitReference.commit(message, pipelineYamlPath);
         let gitLog = await this.gitReference.log();
 
         if (repositoryDetails.remoteName && repositoryDetails.branch) {

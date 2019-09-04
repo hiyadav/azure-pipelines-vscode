@@ -72,11 +72,11 @@ export class GraphHelper {
     }
 
     private static async getGraphToken(session: AzureSession): Promise<TokenResponse> {
-        let refreshTokenResponse = await this.getRefreshToken(session);
+        let refreshTokenResponse = await this.getAzureSessionToken(session);
         return this.getResourceTokenFromRefreshToken(session.environment, refreshTokenResponse.refreshToken, session.tenantId, (<any>session.credentials).clientId, session.environment.activeDirectoryGraphResourceId);
     }
 
-    private static async getRefreshToken(session: AzureSession): Promise<Token> {
+    public static async getAzureSessionToken(session: AzureSession): Promise<Token> {
         return new Promise<Token>((resolve, reject) => {
             const credentials: any = session.credentials;
             const environment = session.environment;

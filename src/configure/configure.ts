@@ -13,6 +13,7 @@ import { SourceOptions, RepositoryProvider, extensionVariables, WizardInputs, We
 import { TracePoints } from './resources/tracePoints';
 import { TelemetryKeys } from './resources/telemetryKeys';
 import * as constants from './resources/constants';
+import * as fs from 'fs';
 import * as path from 'path';
 import * as templateHelper from './helper/templateHelper';
 import * as utils from 'util';
@@ -70,6 +71,7 @@ class PipelineConfigurer {
     private workspacePath: string;
     private uniqueResourceNameSuffix: string;
     private controlProvider: ControlProvider;
+    private enableGitHubActionsFlow: boolean;
 
     public constructor() {
         this.inputs = new WizardInputs();
@@ -78,44 +80,56 @@ class PipelineConfigurer {
         this.azureDevOpsHelper = new AzureDevOpsHelper(this.azureDevOpsClient);
         this.uniqueResourceNameSuffix = uuid().substr(0, 5);
         this.controlProvider = new ControlProvider();
+        this.enableGitHubActionsFlow = true;
     }
 
     public async configure(node: any) {
-        telemetryHelper.setCurrentStep('GetAllRequiredInputs');
-        await this.getAllRequiredInputs(node);
+        telemetryHelper.setCurrentStep('AnalyzeGitRepository');
+        await this.analyzeGitRepository(node);
 
-        telemetryHelper.setCurrentStep('CreatePreRequisites');
-        await this.createPreRequisites();
+        if (this.enableGitHubActionsFlow && this.inputs.sourceRepository.repositoryProvider === RepositoryProvider.Github) {
+            await this.startGitHubWorkFlow();
+        }
+        else {
+            telemetryHelper.setCurrentStep('GetAllRequiredInputs');
+            await this.getAllRequiredInputs();
 
-        telemetryHelper.setCurrentStep('CheckInPipeline');
-        await this.checkInPipelineFileToRepository();
+            telemetryHelper.setCurrentStep('CreatePreRequisites');
+            await this.createPreRequisites();
 
-        telemetryHelper.setCurrentStep('CreateAndRunPipeline');
-        let queuedPipelineUrl = await vscode.window.withProgress<string>({ location: vscode.ProgressLocation.Notification, title: Messages.configuringPipelineAndDeployment }, async () => {
-            try {
-                let pipelineName = `${this.inputs.targetResource.resource.name}-${this.uniqueResourceNameSuffix}`;
-                return await this.azureDevOpsHelper.createAndRunPipeline(pipelineName, this.inputs);
-            }
-            catch (error) {
-                telemetryHelper.logError(Layer, TracePoints.CreateAndQueuePipelineFailed, error);
-                throw error;
-            }
+            telemetryHelper.setCurrentStep('CheckInPipeline');
+            await this.checkInPipelineFileToRepository();
 
-        });
-
-        telemetryHelper.setCurrentStep('DisplayCreatedPipeline');
-        vscode.window.showInformationMessage(Messages.pipelineSetupSuccessfully, Messages.browsePipeline)
-            .then((action: string) => {
-                if (action && action.toLowerCase() === Messages.browsePipeline.toLowerCase()) {
-                    telemetryHelper.setTelemetry(TelemetryKeys.BrowsePipelineClicked, 'true');
-                    vscode.env.openExternal(vscode.Uri.parse(queuedPipelineUrl));
+            telemetryHelper.setCurrentStep('CreateAndRunPipeline');
+            let queuedPipelineUrl = await vscode.window.withProgress<string>({ location: vscode.ProgressLocation.Notification, title: Messages.configuringPipelineAndDeployment }, async () => {
+                try {
+                    let pipelineName = `${this.inputs.targetResource.resource.name}-${this.uniqueResourceNameSuffix}`;
+                    return await this.azureDevOpsHelper.createAndRunPipeline(pipelineName, this.inputs);
                 }
+                catch (error) {
+                    telemetryHelper.logError(Layer, TracePoints.CreateAndQueuePipelineFailed, error);
+                    throw error;
+                }
+
             });
+
+            telemetryHelper.setCurrentStep('DisplayCreatedPipeline');
+            vscode.window.showInformationMessage(Messages.pipelineSetupSuccessfully, Messages.browsePipeline)
+                .then((action: string) => {
+                    if (action && action.toLowerCase() === Messages.browsePipeline.toLowerCase()) {
+                        telemetryHelper.setTelemetry(TelemetryKeys.BrowsePipelineClicked, 'true');
+                        vscode.env.openExternal(vscode.Uri.parse(queuedPipelineUrl));
+                    }
+                });
+        }
     }
 
-    private async getAllRequiredInputs(node: any) {
+    private async analyzeGitRepository(node: any): Promise<void> {
         await this.analyzeNode(node);
         await this.getSourceRepositoryDetails();
+    }
+
+    private async getAllRequiredInputs() {
         await this.getSelectedPipeline();
 
         if (this.inputs.sourceRepository.repositoryProvider === RepositoryProvider.Github) {
@@ -322,7 +336,7 @@ class PipelineConfigurer {
 
     private async extractAzureResourceFromNode(node: any): Promise<void> {
         this.inputs.targetResource.subscriptionId = node.root.subscriptionId;
-        this.appServiceClient = new AppServiceClient(this.inputs.azureSession.credentials, this.inputs.targetResource.subscriptionId);
+        this.appServiceClient = new AppServiceClient(this.inputs.azureSession, this.inputs.targetResource.subscriptionId);
 
         try {
             let azureResource: GenericResource = await this.appServiceClient.getAppServiceResource((<AzureTreeItem>node).fullId);
@@ -441,10 +455,10 @@ class PipelineConfigurer {
         let selectedSubscription: QuickPickItemWithData = await this.controlProvider.showQuickPick(constants.SelectSubscription, subscriptionList, { placeHolder: Messages.selectSubscription });
         this.inputs.targetResource.subscriptionId = selectedSubscription.data.subscription.subscriptionId;
         // show available resources and get the chosen one
-        this.appServiceClient = new AppServiceClient(extensionVariables.azureAccountExtensionApi.sessions[0].credentials, this.inputs.targetResource.subscriptionId);
+        this.appServiceClient = new AppServiceClient(extensionVariables.azureAccountExtensionApi.sessions[0], this.inputs.targetResource.subscriptionId);
         let selectedResource: QuickPickItemWithData = await this.controlProvider.showQuickPick(
             constants.SelectWebApp,
-            this.appServiceClient.GetAppServices(WebAppKind.WindowsApp)
+            this.appServiceClient.GetAppServices([WebAppKind.WindowsApp])
                 .then((webApps) => webApps.map(x => { return { label: x.name, data: x }; })),
             { placeHolder: Messages.selectWebApp },
             TelemetryKeys.WebAppListCount);
@@ -520,7 +534,7 @@ class PipelineConfigurer {
                     await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: Messages.configuringPipelineAndDeployment }, async (progress) => {
                         try {
                             // handle when the branch is not upto date with remote branch and push fails
-                            this.inputs.sourceRepository.commitId = await this.localGitRepoHelper.commitAndPushPipelineFile(this.inputs.pipelineParameters.pipelineFileName, this.inputs.sourceRepository);
+                            this.inputs.sourceRepository.commitId = await this.localGitRepoHelper.commitAndPushPipelineFile(this.inputs.pipelineParameters.pipelineFileName, Messages.addYmlFile, this.inputs.sourceRepository);
                         }
                         catch (error) {
                             telemetryHelper.logError(Layer, TracePoints.CheckInPipelineFailure, error);
@@ -538,6 +552,122 @@ class PipelineConfigurer {
             telemetryHelper.logError(Layer, TracePoints.PipelineFileCheckInFailed, error);
             throw error;
         }
+    }
+
+    private async startGitHubWorkFlow(): Promise<void> {
+        // Select workflow template
+        let appropriatePipelines: PipelineTemplate[] = await vscode.window.withProgress(
+            { location: vscode.ProgressLocation.Notification, title: Messages.analyzingRepo },
+            () => templateHelper.getGithubWorkflowTemplates(this.inputs.sourceRepository.localPath)
+        );
+
+        let selectedOption = await this.controlProvider.showQuickPick(
+            constants.SelectPipelineTemplate,
+            appropriatePipelines.map((pipeline) => { return { label: pipeline.label }; }),
+            { placeHolder: Messages.selectGitHubWorkflowTemplate },
+            TelemetryKeys.PipelineTempateListCount);
+        this.inputs.pipelineParameters.pipelineTemplate = appropriatePipelines.find((pipeline) => {
+            return pipeline.label === selectedOption.label;
+        });
+
+        // Get Azure resource details
+        if (!this.inputs.targetResource.resource) {
+            // show available subscriptions and get the chosen one
+            let subscriptionList = extensionVariables.azureAccountExtensionApi.filters.map((subscriptionObject) => {
+                return <QuickPickItemWithData>{
+                    label: <string>subscriptionObject.subscription.displayName,
+                    data: subscriptionObject
+                };
+            });
+            let selectedSubscription: QuickPickItemWithData = await this.controlProvider.showQuickPick(constants.SelectSubscription, subscriptionList, { placeHolder: Messages.selectSubscription });
+            this.inputs.targetResource.subscriptionId = selectedSubscription.data.subscription.subscriptionId;
+
+            // show list of windows and linux web apps
+            this.appServiceClient = new AppServiceClient(extensionVariables.azureAccountExtensionApi.sessions[0], this.inputs.targetResource.subscriptionId);
+            let selectedResource: QuickPickItemWithData = await this.controlProvider.showQuickPick(
+                constants.SelectWebApp,
+                this.appServiceClient.GetAppServices([WebAppKind.WindowsApp, WebAppKind.LinuxApp])
+                    .then((webApps) => webApps.map(x => { return { label: x.name, data: x }; })),
+                { placeHolder: Messages.selectWebApp },
+                TelemetryKeys.WebAppListCount);
+            this.inputs.targetResource.resource = selectedResource.data;
+        }
+
+        this.inputs.targetResource.serviceConnectionId = 'publishProfile';
+
+        // Create .github directory
+        let workflowDirectoryPath = path.join(this.inputs.sourceRepository.localPath, '.github');
+        if (!fs.existsSync(workflowDirectoryPath)) {
+            fs.mkdirSync(workflowDirectoryPath);
+        }
+
+        // Create .github/workflows directory
+        workflowDirectoryPath = path.join(workflowDirectoryPath, 'workflows');
+        if (!fs.existsSync(workflowDirectoryPath)) {
+            fs.mkdirSync(workflowDirectoryPath);
+        }
+
+        // Create and show yaml file
+        this.inputs.pipelineParameters.pipelineFileName = await this.localGitRepoHelper.addContentToFile(
+            await templateHelper.renderContent(this.inputs.pipelineParameters.pipelineTemplate.path, this.inputs),
+            await LocalGitRepoHelper.GetAvailableFileName("workflow.yml", workflowDirectoryPath),
+            workflowDirectoryPath);
+        await vscode.window.showTextDocument(vscode.Uri.file(path.join(workflowDirectoryPath, this.inputs.pipelineParameters.pipelineFileName)));
+
+        // Get publish profile for web app
+        let publishXml = await this.appServiceClient.getWebAppPublishXml(this.inputs.targetResource.resource.id);
+
+        //Copy secret and open browser window
+        let copyAndOpen = await this.showCopyAndOpenNotification(publishXml);
+
+        if (copyAndOpen === Messages.copyAndOpenLabel) {
+
+            let nextSelected = "";
+            while(nextSelected !== Messages.nextLabel) {
+                nextSelected = await this.showCopyAndOpenNotification(publishXml, true);
+                if(nextSelected === undefined) {
+                    throw new UserCancelledError(Messages.operationCancelled);
+                }
+            }
+
+            // Check-in yaml file to repository
+            while (!this.inputs.sourceRepository.commitId) {
+                let commitOrDiscard = await vscode.window.showInformationMessage(utils.format(Messages.modifyAndCommitFileGitHubWorkflow, Messages.commitAndPush, this.inputs.sourceRepository.branch, this.inputs.sourceRepository.remoteName), Messages.commitAndPush, Messages.discardWorkflow);
+                if (commitOrDiscard === Messages.commitAndPush) {
+                    await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: Messages.configuringGitHubWorkflow }, async (progress) => {
+                        try {
+                            // handle when the branch is not upto date with remote branch and push fails
+                            this.inputs.sourceRepository.commitId = await this.localGitRepoHelper.commitAndPushPipelineFile(path.join('.github/workflows', this.inputs.pipelineParameters.pipelineFileName), Messages.addGitHubWorkflowFile, this.inputs.sourceRepository);
+                        }
+                        catch (error) {
+                            vscode.window.showErrorMessage(utils.format(Messages.commitFailedErrorMessage, error.message));
+                        }
+                    });
+                }
+                else {
+                    telemetryHelper.setTelemetry(TelemetryKeys.PipelineDiscarded, 'true');
+                    throw new UserCancelledError(Messages.operationCancelled);
+                }
+            }
+
+            let gitHubWorkflowUrl = `https://github.com/${this.inputs.sourceRepository.repositoryId}/commit/${this.inputs.sourceRepository.commitId}/checks`;
+            vscode.window.showInformationMessage(Messages.githubWorkflowSetupSuccessfully, Messages.browseWorkflow)
+                .then((action: string) => {
+                    if (action === Messages.browseWorkflow) {
+                        vscode.env.openExternal(vscode.Uri.parse(gitHubWorkflowUrl));
+                    }
+                });
+        }
+    }
+
+    private async showCopyAndOpenNotification(publishXml: string, showNextButton = false): Promise<string> {
+        let actions: Array<string> = showNextButton ? [Messages.copyAndOpenLabel, Messages.nextLabel] : [Messages.copyAndOpenLabel];
+        let copyAndOpen = await vscode.window.showInformationMessage(utils.format(Messages.copyPublishingCredentials, this.inputs.targetResource.serviceConnectionId), ...actions);
+        if (copyAndOpen === Messages.copyAndOpenLabel) {
+            await vscode.env.clipboard.writeText(publishXml);
+            await vscode.env.openExternal(vscode.Uri.parse(`https://github.com/${this.inputs.sourceRepository.repositoryId}/settings/secrets`));
+        }
+        return copyAndOpen;
     }
 }
 
